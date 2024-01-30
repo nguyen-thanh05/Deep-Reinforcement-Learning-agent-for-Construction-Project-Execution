@@ -1,10 +1,10 @@
 
 import gymnasium as gym
-import gym_examples
+import GridWorld_env
 from gymnasium.wrappers import FlattenObservation
 
 
-env = gym.make('gym_examples/GridWorld-v0', render_mode="human")
+env = gym.make('GridWorld_env/GridWorld', render_mode="human")
 #env = gym.make("LunarLander-v2", render_mode="human")
 env.action_space.seed(42)
 
