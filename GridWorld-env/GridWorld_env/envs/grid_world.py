@@ -12,7 +12,7 @@ class GridWorldEnv(gym.Env):
     def reset(self, seed=None, options=None):
         self.building_zone = np.zeros((self.dimension_size, self.dimension_size, self.dimension_size), dtype=int)
         self.agent_position = np.zeros((self.dimension_size, self.dimension_size), dtype=int)
-        
+        self.agent_position[0, 0] = 1 # Starts in the upper left corner
         # 0: up, 1: down, 2: left, 3: right, 4: pick, 5: drop
         self.action_space = spaces.Discrete(6)   
         self.target()
