@@ -8,6 +8,7 @@ class GridWorldEnv(gym.Env):
     
     def __init__(self, dimension_size):
         self.dimension_size = dimension_size
+        self.timestep_elapsed = 0
         self.reset()
     
     def reset(self, seed=None, options=None):
@@ -19,6 +20,8 @@ class GridWorldEnv(gym.Env):
         # 0: up, 1: down, 2: left, 3: right, 4: pick, 5: drop
         self.action_space = spaces.Discrete(6)   
         self._init_target()
+
+        self.timestep_elapsed = 0
 
     def _get_obs(self):
         pass
@@ -41,6 +44,7 @@ class GridWorldEnv(gym.Env):
             self.target[p[0], p[1], p[2]] = 1
 
     def step(self, action):
+        self.timestep_elapsed += 1
         # 0: up, 1: down, 2: left, 3: right, 4: pick, 5: drop
         if action == 0:
             # Check if agent is at top of the grid
@@ -86,6 +90,8 @@ class GridWorldEnv(gym.Env):
         
         # return observation, reward, terminated, truncated, info
         
+        if self.timestep_elapsed >= 150:
+            return (self.building_zone, self.agent_pos), -1, False, True, {}
         # Check if the building zone is the same as the target
         if np.array_equal(self.building_zone, self.target):
             return (self.building_zone, self.agent_pos), 0, True, False, {}
