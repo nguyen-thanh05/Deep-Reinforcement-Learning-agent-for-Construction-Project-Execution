@@ -15,7 +15,7 @@ class GridWorldEnv(gym.Env):
     def reset(self, seed=None, options=None):
         self.building_zone = np.zeros((self.dimension_size, self.dimension_size, self.dimension_size), dtype=int)
         
-        random_start_pos = np.random.randint(0, self.dimension_size, 3)
+        random_start_pos = np.zeros(3, dtype=int)
         self.agent_pos = [random_start_pos[0], random_start_pos[1], random_start_pos[2]]
         
         # List of actions
@@ -29,8 +29,11 @@ class GridWorldEnv(gym.Env):
         self.timestep_elapsed = 0
 
     def _get_obs(self):
-        #np.concatenate((self.building_zone, self.agent_pos), dim=0)
-        pass
+        agent_pos_grid = np.zeros((self.dimension_size, self.dimension_size, self.dimension_size), dtype=int)
+        agent_pos_grid[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]] = 1
+        
+        return np.concatenate(np.expand_dims(self.building_zone, axis=0), np.expand_dims(agent_pos_grid, axis=0), np.expand_dims(self.target, axis=0), dim=0)
+        
     def _get_info(self):
         pass
 
@@ -164,5 +167,10 @@ class GridWorldEnv(gym.Env):
     
 if __name__ == "__main__":
     env = GridWorldEnv(4)
-    #print(env.target)
+    # List of actions
+    # 0: forward, 1: backward
+    # 2: left, 3: right
+    # 4: up, 5: down
+    # 6: pick
     env.step(0)
+    print
