@@ -8,6 +8,7 @@ MAX_TIMESTEP = 500
 class GridWorldEnv(gym.Env): 
     
     def __init__(self, dimension_size):
+        self.observation_space = spaces.Box(low=0, high=255, shape=(64, 64, 3), dtype=np.uint8)
         self.dimension_size = dimension_size
         self.timestep_elapsed = 0
         self.reset()
@@ -29,6 +30,7 @@ class GridWorldEnv(gym.Env):
         self.timestep_elapsed = 0
 
     def _get_obs(self):
+        # clear agent_pos_grid
         agent_pos_grid = np.zeros((self.dimension_size, self.dimension_size, self.dimension_size), dtype=int)
         agent_pos_grid[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]] = 1
         
@@ -130,6 +132,7 @@ class GridWorldEnv(gym.Env):
             else:
                 return self._get_obs(), -1, False, False, {}
         elif place_cmd:
+            self.render()
             if supporting_neighbour:
                 if np.equal(self.building_zone, self.target).all():
                     return self._get_obs(), 0, True, False, {}
@@ -145,14 +148,21 @@ class GridWorldEnv(gym.Env):
                     return self._get_obs(), -100, False, False, {}
  
     def render(self):
+        agent_pos_grid = np.zeros((self.dimension_size, self.dimension_size, self.dimension_size), dtype=int)
+        agent_pos_grid[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]] = 1
 
         # prepare some coordinates
-        cube1 = self.building_zone == 1
-        #print(cube1)
+        targetCube = self.building_zone == 1
+        agentCube = agent_pos_grid == 1
 
+
+
+
+        cube1 = targetCube | agentCube
         # set the colors of each object
         colors = np.empty(cube1.shape, dtype=object)
-        colors[cube1] = 'blue'
+        colors[targetCube] = 'blue'
+        colors[agentCube] = 'yellow'
         #print(colors)
 
         ax = plt.figure().add_subplot(projection='3d')
@@ -172,12 +182,20 @@ if __name__ == "__main__":
     # 2: left, 3: right
     # 4: up, 5: down
     # 6: place block
-    env.step(0)
-    env.step(6)
-    env.step(4)
-    env.step(6)
-    env.step(3)
-    env.step(6)
-    env.render()
-    print(env.building_zone)
-    print
+    #env.step(0)
+    #env.step(6)
+    #env.step(4)
+    #env.step(6)
+    #env.step(3)
+    #env.step(6)
+    ##env.render()
+    #print(env.building_zone)
+
+    env.reset()
+    for _ in range(1000):
+        # sample discrete random action between 0 and 6 using numpy
+        action = np.random.randint(0, 7)
+        observation, reward, terminated, truncated, info = env.step(action)
+
+        if terminated or truncated:
+            env.reset()
