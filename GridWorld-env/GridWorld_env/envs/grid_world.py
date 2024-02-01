@@ -3,6 +3,7 @@ from gymnasium import spaces
 import numpy as np
 import matplotlib.pyplot as plt
 
+MAX_TIMESTEP = 500
 
 class GridWorldEnv(gym.Env): 
     
@@ -14,16 +15,21 @@ class GridWorldEnv(gym.Env):
     def reset(self, seed=None, options=None):
         self.building_zone = np.zeros((self.dimension_size, self.dimension_size, self.dimension_size), dtype=int)
         
-        random_start_pos = np.random.randint(0, self.dimension_size, 2)
-        self.agent_pos = [random_start_pos[0], random_start_pos[1]]
+        random_start_pos = np.random.randint(0, self.dimension_size, 3)
+        self.agent_pos = [random_start_pos[0], random_start_pos[1], random_start_pos[2]]
         
-        # 0: up, 1: down, 2: left, 3: right, 4: pick, 5: drop
-        self.action_space = spaces.Discrete(6)   
+        # List of actions
+        # 0: forward, 1: backward
+        # 2: left, 3: right
+        # 4: up, 5: down
+        # 6: pick
+        self.action_space = spaces.Discrete(7)   
         self._init_target()
 
         self.timestep_elapsed = 0
 
     def _get_obs(self):
+        #np.concatenate((self.building_zone, self.agent_pos), dim=0)
         pass
     def _get_info(self):
         pass
@@ -45,59 +51,95 @@ class GridWorldEnv(gym.Env):
 
     def step(self, action):
         self.timestep_elapsed += 1
-        # 0: up, 1: down, 2: left, 3: right, 4: pick, 5: drop
+        move_cmd = False
+        place_cmd = False
+        # List of actions
+        # 0: forward, 1: backward
+        # 2: left, 3: right
+        # 4: up, 5: down
+        # 6: pick
         if action == 0:
-            # Check if agent is at top of the grid
-            if self.agent_pos[0] != 0:
-                self.agent_pos[0] -= 1
-        elif action == 1:
-            # Check if agent is at the bottom of the grid
-            if self.agent_pos[0] != self.dimension_size - 1:
-                self.agent_pos[0] += 1
-        elif action == 2:
-            # Check if agent is at the left of the grid
-            if self.agent_pos[1] != 0:
+            # Y - 1
+            if self.agent_pos[1] > 0:
                 self.agent_pos[1] -= 1
-        elif action == 3:
-            # Check if agent is at the right of the grid
-            if self.agent_pos[1] != self.dimension_size - 1:
+            move_cmd = True
+        elif action == 1:
+            # Y + 1
+            if self.agent_pos[1] < self.dimension_size - 1:
                 self.agent_pos[1] += 1
-        elif action == 4:
-            # Check if there is a block to pick up. If there is a block, remove it from the building zone, else nothing happens
-           if len(len(np.where(self.building_zone[self.agent_pos[0], self.agent_pos[1], :])[0]) != 0):
-               removed_block_z = np.where(self.building_zone[self.agent_pos[0], self.agent_pos[1], :])[0][-1]
-               self.building_zone[self.agent_pos[0], self.agent_pos[1], removed_block_z] = 0
-        elif action == 5:
-            # 4 neghbouring directions
-            neighbour_direction = [[self.agent_pos[0] + delta_x, self.agent_pos[1] + delta_y] for delta_x, delta_y in [[-1, 0], [1, 0], [0, -1], [0, 1]]]
-            for i in range(4):
-                if neighbour_direction[i][0] < 0 or neighbour_direction[i][0] >= self.dimension_size or neighbour_direction[i][1] < 0 or neighbour_direction[i][1] >= self.dimension_size:
-                    neighbour_direction.pop(i)
-            
-            # Find the highest block in all neighbouring directions
-            highest_z = -1000
-            for i in range(len(neighbour_direction)):
-                if len(np.where(self.building_zone[neighbour_direction[i][0], neighbour_direction[i][1], :])[0]) == 0:
-                    value = 0
-                else:
-                    value = np.max(np.where(self.building_zone[neighbour_direction[i][0], neighbour_direction[i][1], :])[0])
-                    
-                if value > highest_z:
-                    highest_z = value
-            
-            # Drop the block at the highest z
-            self.building_zone[self.agent_pos[0], self.agent_pos[1], highest_z] = 1
-        
-        # return observation, reward, terminated, truncated, info
-        
-        if self.timestep_elapsed >= 150:
-            return (self.building_zone, self.agent_pos), -1, False, True, {}
-        # Check if the building zone is the same as the target
-        if np.array_equal(self.building_zone, self.target):
-            return (self.building_zone, self.agent_pos), 0, True, False, {}
-        
-        return (self.building_zone, self.agent_pos), -1, False, False, {}
+            move_cmd = True
                 
+        elif action == 2:
+            # X - 1
+            if self.agent_pos[0] > 0:
+                self.agent_pos[0] -= 1
+            move_cmd = True
+                
+        elif action == 3:
+            # X + 1
+            if self.agent_pos[0] < self.dimension_size - 1:
+                self.agent_pos[0] += 1
+            move_cmd = True
+        
+        elif action == 4:
+            # Z + 1
+            if self.agent_pos[2] < self.dimension_size - 1:
+                self.agent_pos[2] += 1
+            move_cmd = True       
+        elif action == 5:
+            # Z - 1
+            if self.agent_pos[2] > 0:
+                self.agent_pos[2] -= 1
+            move_cmd = True
+        
+        elif action == 6: # Place a block
+            place_cmd = True
+            # Find all 6 neighbouring directions
+            neighbour_direction = [
+                [self.agent_pos[0] + delta_x, self.agent_pos[1] + delta_y, self.agent_pos[2] + delta_z]
+                for delta_x, delta_y, delta_z in [[-1, 0, 0], [1, 0, 0], [0, -1, 0], [0, 1, 0], [0, 0, -1], [0, 0, 1]]
+            ]
+            
+            for neighbour in neighbour_direction:
+                if neighbour[0] < 0 or neighbour[0] >= self.dimension_size or neighbour[1] < 0 or neighbour[1] >= self.dimension_size or neighbour[2] < 0 or neighbour[2] >= self.dimension_size:
+                    neighbour_direction.remove(neighbour)
+            
+            # Find if there is any supporting neighbour
+            supporting_neighbour = False
+            for neighbour in neighbour_direction:
+                if self.building_zone[neighbour[0], neighbour[1], neighbour[2]] == 1:
+                    supporting_neighbour = True
+                    break
+            
+            if supporting_neighbour:
+                # Place the block
+                self.building_zone[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]] = 1
+            else:
+                # Check if block on the ground. No need to check support
+                if self.agent_pos[2] == 0:
+                    self.building_zone[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]] = 1
+                    supporting_neighbour = True
+            
+        # return observation, reward, terminated, truncated, info
+        if move_cmd:
+            if self.timestep_elapsed > MAX_TIMESTEP:
+                return self._get_obs(), -1, False, True, {}
+            else:
+                return self._get_obs(), -1, False, False, {}
+        elif place_cmd:
+            if supporting_neighbour:
+                if np.equal(self.building_zone, self.target).all():
+                    return self._get_obs(), 0, True, False, {}
+                else:
+                    if self.timestep_elapsed > MAX_TIMESTEP:
+                        return self._get_obs(), -1, False, True, {}
+                    else:
+                        return self._get_obs(), -1, False, False, {}
+            else:
+                if self.timestep_elapsed > MAX_TIMESTEP:
+                    return self._get_obs(), -100, False, True, {}        
+                else:
+                    return self._get_obs(), -100, False, False, {}
  
     def render(self):
 
