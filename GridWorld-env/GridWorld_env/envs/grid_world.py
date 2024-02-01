@@ -32,7 +32,7 @@ class GridWorldEnv(gym.Env):
         agent_pos_grid = np.zeros((self.dimension_size, self.dimension_size, self.dimension_size), dtype=int)
         agent_pos_grid[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]] = 1
         
-        return np.concatenate(np.expand_dims(self.building_zone, axis=0), np.expand_dims(agent_pos_grid, axis=0), np.expand_dims(self.target, axis=0), dim=0)
+        return np.stack((np.expand_dims(self.building_zone, axis=0), np.expand_dims(agent_pos_grid, axis=0), np.expand_dims(self.target, axis=0)), axis=0)
         
     def _get_info(self):
         pass
@@ -61,12 +61,12 @@ class GridWorldEnv(gym.Env):
         # 2: left, 3: right
         # 4: up, 5: down
         # 6: pick
-        if action == 0:
+        if action == 1:
             # Y - 1
             if self.agent_pos[1] > 0:
                 self.agent_pos[1] -= 1
             move_cmd = True
-        elif action == 1:
+        elif action == 0:
             # Y + 1
             if self.agent_pos[1] < self.dimension_size - 1:
                 self.agent_pos[1] += 1
@@ -147,7 +147,7 @@ class GridWorldEnv(gym.Env):
     def render(self):
 
         # prepare some coordinates
-        cube1 = self.target == 1
+        cube1 = self.building_zone == 1
         #print(cube1)
 
         # set the colors of each object
@@ -171,6 +171,13 @@ if __name__ == "__main__":
     # 0: forward, 1: backward
     # 2: left, 3: right
     # 4: up, 5: down
-    # 6: pick
+    # 6: place block
     env.step(0)
+    env.step(6)
+    env.step(4)
+    env.step(6)
+    env.step(3)
+    env.step(6)
+    env.render()
+    print(env.building_zone)
     print
