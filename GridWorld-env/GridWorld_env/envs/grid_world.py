@@ -26,6 +26,8 @@ class GridWorldEnv(gym.Env):
         # 6: pick
         self.action_space = spaces.Discrete(7)   
         self._init_target()
+        
+        self.observation_space = spaces.Box(low=0, high=1, shape=(3, self.dimension_size, self.dimension_size, self.dimension_size), dtype=int)
 
         self.timestep_elapsed = 0
 
@@ -34,7 +36,7 @@ class GridWorldEnv(gym.Env):
         agent_pos_grid = np.zeros((self.dimension_size, self.dimension_size, self.dimension_size), dtype=int)
         agent_pos_grid[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]] = 1
         
-        return np.stack((np.expand_dims(self.building_zone, axis=0), np.expand_dims(agent_pos_grid, axis=0), np.expand_dims(self.target, axis=0)), axis=0)
+        return np.stack((self.building_zone, agent_pos_grid, self.target), axis=0)
         
     def _get_info(self):
         pass
