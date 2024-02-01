@@ -2,8 +2,8 @@ import gymnasium as gym
 from gymnasium import spaces
 import numpy as np
 import matplotlib.pyplot as plt
-
-MAX_TIMESTEP = 500
+import torch
+MAX_TIMESTEP = 2000
 
 class GridWorldEnv(gym.Env): 
     
@@ -30,8 +30,9 @@ class GridWorldEnv(gym.Env):
         self.observation_space = spaces.Box(low=0, high=1, shape=(3, self.dimension_size, self.dimension_size, self.dimension_size), dtype=int)
 
         self.timestep_elapsed = 0
+        return self.get_obs(), {}
 
-    def _get_obs(self):
+    def get_obs(self):
         # clear agent_pos_grid
         agent_pos_grid = np.zeros((self.dimension_size, self.dimension_size, self.dimension_size), dtype=int)
         agent_pos_grid[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]] = 1
@@ -130,24 +131,24 @@ class GridWorldEnv(gym.Env):
         # return observation, reward, terminated, truncated, info
         if move_cmd:
             if self.timestep_elapsed > MAX_TIMESTEP:
-                return self._get_obs(), -1, False, True, {}
+                return self.get_obs(), torch.tensor(-1), torch.tensor(0), torch.tensor(1), {}
             else:
-                return self._get_obs(), -1, False, False, {}
+                return self.get_obs(), torch.tensor(-1), torch.tensor(0), torch.tensor(0), {}
         elif place_cmd:
-            self.render()
+            #self.render()
             if supporting_neighbour:
                 if np.equal(self.building_zone, self.target).all():
-                    return self._get_obs(), 0, True, False, {}
+                    return self.get_obs(), 0, torch.tensor(1), torch.tensor(0), {}
                 else:
                     if self.timestep_elapsed > MAX_TIMESTEP:
-                        return self._get_obs(), -1, False, True, {}
+                        return self.get_obs(), torch.tensor(-1), torch.tensor(0), torch.tensor(1), {}
                     else:
-                        return self._get_obs(), -1, False, False, {}
+                        return self.get_obs(), torch.tensor(-1), torch.tensor(0), torch.tensor(0), {}
             else:
                 if self.timestep_elapsed > MAX_TIMESTEP:
-                    return self._get_obs(), -100, False, True, {}        
+                    return self.get_obs(), torch.tensor(-100), torch.tensor(0), torch.tensor(1), {}        
                 else:
-                    return self._get_obs(), -100, False, False, {}
+                    return self.get_obs(), torch.tensor(-100), torch.tensor(0), torch.tensor(0), {}
  
     def render(self):
         agent_pos_grid = np.zeros((self.dimension_size, self.dimension_size, self.dimension_size), dtype=int)
