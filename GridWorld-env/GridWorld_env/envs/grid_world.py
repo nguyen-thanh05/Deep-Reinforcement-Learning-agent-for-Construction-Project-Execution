@@ -148,9 +148,9 @@ class GridWorldEnv(gym.Env):
                         return self.get_obs(), torch.tensor(-1), torch.tensor(0), torch.tensor(0), {}
             else:
                 if self.timestep_elapsed > MAX_TIMESTEP:
-                    return self.get_obs(), torch.tensor(-100), torch.tensor(0), torch.tensor(1), {}        
+                    return self.get_obs(), torch.tensor(-5), torch.tensor(0), torch.tensor(1), {}        
                 else:
-                    return self.get_obs(), torch.tensor(-100), torch.tensor(0), torch.tensor(0), {}
+                    return self.get_obs(), torch.tensor(-5), torch.tensor(0), torch.tensor(0), {}
  
     def render(self):
         agent_pos_grid = np.zeros((self.dimension_size, self.dimension_size, self.dimension_size), dtype=int)
