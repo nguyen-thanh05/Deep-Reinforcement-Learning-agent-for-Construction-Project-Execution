@@ -3,7 +3,7 @@ from gymnasium import spaces
 import numpy as np
 import matplotlib.pyplot as plt
 import torch
-MAX_TIMESTEP = 200
+MAX_TIMESTEP = 500
 
 class GridWorldEnv(gym.Env): 
     
@@ -120,6 +120,9 @@ class GridWorldEnv(gym.Env):
                     break
             
             if supporting_neighbour:
+                # If the space is already occupied
+                if self.building_zone[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]] == 1:
+                    supporting_neighbour = False
                 # Place the block
                 self.building_zone[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]] = 1
             else:
@@ -128,7 +131,6 @@ class GridWorldEnv(gym.Env):
                     self.building_zone[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]] = 1
                     supporting_neighbour = True
         
-        print(self.timestep_elapsed, MAX_TIMESTEP, self.timestep_elapsed > MAX_TIMESTEP)
 
         # return observation, reward, terminated, truncated, info
         if move_cmd:
@@ -137,20 +139,25 @@ class GridWorldEnv(gym.Env):
             else:
                 return self.get_obs(), torch.tensor(-1), torch.tensor(0), torch.tensor(0), {}
         elif place_cmd:
-            #self.render()
             if supporting_neighbour:
                 if np.equal(self.building_zone, self.target).all():
-                    return self.get_obs(), 0, torch.tensor(1), torch.tensor(0), {}
+                    return self.get_obs(), torch.tensor(0), torch.tensor(1), torch.tensor(0), {}
                 else:
-                    if self.timestep_elapsed > MAX_TIMESTEP:
-                        return self.get_obs(), torch.tensor(-1), torch.tensor(0), torch.tensor(1), {}
+                    if self.building_zone[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]] == self.target[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]]:
+                        if self.timestep_elapsed > MAX_TIMESTEP:
+                            return self.get_obs(), torch.tensor(-0.3), torch.tensor(0), torch.tensor(1), {}
+                        else:
+                            return self.get_obs(), torch.tensor(-0.3), torch.tensor(0), torch.tensor(0), {}
                     else:
-                        return self.get_obs(), torch.tensor(-1), torch.tensor(0), torch.tensor(0), {}
+                        if self.timestep_elapsed > MAX_TIMESTEP:
+                            return self.get_obs(), torch.tensor(-1), torch.tensor(0), torch.tensor(1), {}
+                        else:
+                            return self.get_obs(), torch.tensor(-1), torch.tensor(0), torch.tensor(0), {}
             else:
                 if self.timestep_elapsed > MAX_TIMESTEP:
-                    return self.get_obs(), torch.tensor(-5), torch.tensor(0), torch.tensor(1), {}        
+                    return self.get_obs(), torch.tensor(-1), torch.tensor(0), torch.tensor(1), {}        
                 else:
-                    return self.get_obs(), torch.tensor(-5), torch.tensor(0), torch.tensor(0), {}
+                    return self.get_obs(), torch.tensor(-1), torch.tensor(0), torch.tensor(0), {}
  
     def render(self):
         agent_pos_grid = np.zeros((self.dimension_size, self.dimension_size, self.dimension_size), dtype=int)
@@ -181,7 +188,6 @@ class GridWorldEnv(gym.Env):
         pass
     
 if __name__ == "__main__":
-    env = GridWorldEnv(4)
     # List of actions
     # 0: forward, 1: backward
     # 2: left, 3: right
@@ -195,12 +201,24 @@ if __name__ == "__main__":
     #env.step(6)
     ##env.render()
     #print(env.building_zone)
+    env = GridWorldEnv(4)
 
     env.reset()
-    for _ in range(1000):
-        # sample discrete random action between 0 and 6 using numpy
-        action = np.random.randint(0, 7)
-        observation, reward, terminated, truncated, info = env.step(action)
-
-        if terminated or truncated:
-            env.reset()
+    env.step(0)
+    env.step(3)
+    env.step(6)
+    env.step(4)
+    env.step(6)
+    env.step(3)
+    env.step(6)
+    env.step(3)
+    env.step(6)
+    env.step(3)
+    env.step(5)
+    env.step(1)
+    env.step(2)
+    env.step(2)
+    env.step(2)
+    env.step(2)
+    env.render()
+    
