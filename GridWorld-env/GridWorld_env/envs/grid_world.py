@@ -140,7 +140,9 @@ class GridWorldEnv(gym.Env):
                 return self.get_obs(), torch.tensor(-1), torch.tensor(0), torch.tensor(0), {}
         elif place_cmd:
             if supporting_neighbour:
-                if np.equal(self.building_zone, self.target).all():
+                difference = self.target - self.building_zone
+                difference = np.isin(difference, 1)
+                if np.any(difference) == False:
                     return self.get_obs(), torch.tensor(0), torch.tensor(1), torch.tensor(0), {}
                 else:
                     if self.building_zone[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]] == self.target[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]]:
