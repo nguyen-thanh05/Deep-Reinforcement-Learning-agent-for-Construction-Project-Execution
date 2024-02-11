@@ -175,8 +175,8 @@ class GridWorldEnv(gym.Env):
         cube1 = targetCube | agentCube
         # set the colors of each object
         colors = np.empty(cube1.shape, dtype=object)
-        colors[targetCube] = 'blue'
-        colors[agentCube] = 'yellow'
+        colors[targetCube] = '#7A88CCC0'
+        colors[agentCube] = '#FFD65DC0'
         #print(colors)
 
         ax = plt.figure().add_subplot(projection='3d')
