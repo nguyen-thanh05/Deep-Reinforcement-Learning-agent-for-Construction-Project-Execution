@@ -1,170 +1,224 @@
 import gymnasium as gym
 from gymnasium import spaces
-import pygame
 import numpy as np
+import matplotlib.pyplot as plt
+import torch
+MAX_TIMESTEP = 500
 
-
-class GridWorldEnv(gym.Env):
-    metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 4}
-
-    def __init__(self, render_mode=None, size=5):
-        self.size = size  # The size of the square grid
-        self.window_size = 512  # The size of the PyGame window
-
-        # Observations are dictionaries with the agent's and the target's location.
-        # Each location is encoded as an element of {0, ..., `size`}^2, i.e. MultiDiscrete([size, size]).
-        self.observation_space = spaces.Dict(
-            {
-                "agent": spaces.Box(0, size - 1, shape=(2,), dtype=int),
-                "target": spaces.Box(0, size - 1, shape=(2,), dtype=int),
-            }
-        )
-
-        # We have 4 actions, corresponding to "right", "up", "left", "down", "right"
-        self.action_space = spaces.Discrete(4)
-
-        """
-        The following dictionary maps abstract actions from `self.action_space` to 
-        the direction we will walk in if that action is taken.
-        I.e. 0 corresponds to "right", 1 to "up" etc.
-        """
-        self._action_to_direction = {
-            0: np.array([1, 0]),
-            1: np.array([0, 1]),
-            2: np.array([-1, 0]),
-            3: np.array([0, -1]),
-        }
-
-        assert render_mode is None or render_mode in self.metadata["render_modes"]
-        self.render_mode = render_mode
-
-        """
-        If human-rendering is used, `self.window` will be a reference
-        to the window that we draw to. `self.clock` will be a clock that is used
-        to ensure that the environment is rendered at the correct framerate in
-        human-mode. They will remain `None` until human-mode is used for the
-        first time.
-        """
-        self.window = None
-        self.clock = None
-
-    def _get_obs(self):
-        return {"agent": self._agent_location, "target": self._target_location}
-
-    def _get_info(self):
-        return {
-            "distance": np.linalg.norm(
-                self._agent_location - self._target_location, ord=1
-            )
-        }
-
+class GridWorldEnv(gym.Env): 
+    
+    def __init__(self, dimension_size):
+        self.observation_space = spaces.Box(low=0, high=255, shape=(64, 64, 3), dtype=np.uint8)
+        self.dimension_size = dimension_size
+        self.timestep_elapsed = 0
+        self.reset()
+    
     def reset(self, seed=None, options=None):
-        # We need the following line to seed self.np_random
-        super().reset(seed=seed)
+        self.building_zone = np.zeros((self.dimension_size, self.dimension_size, self.dimension_size), dtype=int)
+        
+        random_start_pos = np.zeros(3, dtype=int)
+        self.agent_pos = [random_start_pos[0], random_start_pos[1], random_start_pos[2]]
+        
+        # List of actions
+        # 0: forward, 1: backward
+        # 2: left, 3: right
+        # 4: up, 5: down
+        # 6: pick
+        self.action_space = spaces.Discrete(7)   
+        self._init_target()
+        
+        self.observation_space = spaces.Box(low=0, high=1, shape=(3, self.dimension_size, self.dimension_size, self.dimension_size), dtype=int)
 
-        # Choose the agent's location uniformly at random
-        self._agent_location = self.np_random.integers(0, self.size, size=2, dtype=int)
+        self.timestep_elapsed = 0
+        return self.get_obs(), {}
 
-        # We will sample the target's location randomly until it does not coincide with the agent's location
-        self._target_location = self._agent_location
-        while np.array_equal(self._target_location, self._agent_location):
-            self._target_location = self.np_random.integers(
-                0, self.size, size=2, dtype=int
-            )
+    def get_obs(self):
+        # clear agent_pos_grid
+        agent_pos_grid = np.zeros((self.dimension_size, self.dimension_size, self.dimension_size), dtype=int)
+        agent_pos_grid[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]] = 1
+        
+        return np.stack((self.building_zone, agent_pos_grid, self.target), axis=0)
+        
+    def _get_info(self):
+        pass
 
-        observation = self._get_obs()
-        info = self._get_info()
-
-        if self.render_mode == "human":
-            self._render_frame()
-
-        return observation, info
+    def _init_target(self):
+        self.target = np.zeros((self.dimension_size, self.dimension_size, self.dimension_size), dtype=int)
+        
+        # Hardcoding 4 columns, and 4 beams across the 4 columns. TO BE CHANGED TO BE MORE DYNAMIC AND USEABLE
+        
+        points = [
+            [0, 0, 0], [0, 0, 1], [0, 0, 2], [0, 0, 3], # column 1, 4 block high in the left upper corner
+            [0, self.dimension_size - 1, 0], [0, self.dimension_size - 1, 1], [0, self.dimension_size - 1, 2], [0, self.dimension_size - 1, 3], # column 2, 4 block high in the left lower corner
+            [self.dimension_size - 1, 0, 0], [self.dimension_size - 1, 0, 1], [self.dimension_size - 1, 0, 2], [self.dimension_size - 1, 0, 3], # column 3, 4 block high in the right upper corner
+            [self.dimension_size - 1, self.dimension_size - 1, 0], [self.dimension_size - 1, self.dimension_size - 1, 1], [self.dimension_size - 1, self.dimension_size - 1, 2], [self.dimension_size - 1, self.dimension_size - 1, 3], # column 4, 4 block high in the right lower corner
+        ]
+        
+        for p in points:
+            self.target[p[0], p[1], p[2]] = 1
 
     def step(self, action):
-        # Map the action (element of {0,1,2,3}) to the direction we walk in
-        direction = self._action_to_direction[action]
-        # We use `np.clip` to make sure we don't leave the grid
-        self._agent_location = np.clip(
-            self._agent_location + direction, 0, self.size - 1
-        )
-        # An episode is done iff the agent has reached the target
-        terminated = np.array_equal(self._agent_location, self._target_location)
-        reward = 1 if terminated else 0  # Binary sparse rewards
-        observation = self._get_obs()
-        info = self._get_info()
+        self.timestep_elapsed += 1
+        move_cmd = False
+        place_cmd = False
+        # List of actions
+        # 0: forward, 1: backward
+        # 2: left, 3: right
+        # 4: up, 5: down
+        # 6: pick
+        if action == 1:
+            # Y - 1
+            if self.agent_pos[1] > 0:
+                self.agent_pos[1] -= 1
+            move_cmd = True
+        elif action == 0:
+            # Y + 1
+            if self.agent_pos[1] < self.dimension_size - 1:
+                self.agent_pos[1] += 1
+            move_cmd = True
+                
+        elif action == 2:
+            # X - 1
+            if self.agent_pos[0] > 0:
+                self.agent_pos[0] -= 1
+            move_cmd = True
+                
+        elif action == 3:
+            # X + 1
+            if self.agent_pos[0] < self.dimension_size - 1:
+                self.agent_pos[0] += 1
+            move_cmd = True
+        
+        elif action == 4:
+            # Z + 1
+            if self.agent_pos[2] < self.dimension_size - 1:
+                self.agent_pos[2] += 1
+            move_cmd = True       
+        elif action == 5:
+            # Z - 1
+            if self.agent_pos[2] > 0:
+                self.agent_pos[2] -= 1
+            move_cmd = True
+        
+        elif action == 6: # Place a block
+            place_cmd = True
+            # Find all 6 neighbouring directions
+            neighbour_direction = [
+                [self.agent_pos[0] + delta_x, self.agent_pos[1] + delta_y, self.agent_pos[2] + delta_z]
+                for delta_x, delta_y, delta_z in [[-1, 0, 0], [1, 0, 0], [0, -1, 0], [0, 1, 0], [0, 0, -1], [0, 0, 1]]
+            ]
+            
+            for neighbour in neighbour_direction:
+                if neighbour[0] < 0 or neighbour[0] >= self.dimension_size or neighbour[1] < 0 or neighbour[1] >= self.dimension_size or neighbour[2] < 0 or neighbour[2] >= self.dimension_size:
+                    neighbour_direction.remove(neighbour)
+            
+            # Find if there is any supporting neighbour
+            supporting_neighbour = False
+            for neighbour in neighbour_direction:
+                if self.building_zone[neighbour[0], neighbour[1], neighbour[2]] == 1:
+                    supporting_neighbour = True
+                    break
+            
+            if supporting_neighbour:
+                # If the space is already occupied
+                if self.building_zone[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]] == 1:
+                    supporting_neighbour = False
+                # Place the block
+                self.building_zone[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]] = 1
+            else:
+                # Check if block on the ground. No need to check support
+                if self.agent_pos[2] == 0:
+                    self.building_zone[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]] = 1
+                    supporting_neighbour = True
+        
 
-        if self.render_mode == "human":
-            self._render_frame()
-
-        return observation, reward, terminated, False, info
-
+        # return observation, reward, terminated, truncated, info
+        if move_cmd:
+            if self.timestep_elapsed > MAX_TIMESTEP:
+                return self.get_obs(), torch.tensor(-1), torch.tensor(0), torch.tensor(1), {}
+            else:
+                return self.get_obs(), torch.tensor(-1), torch.tensor(0), torch.tensor(0), {}
+        elif place_cmd:
+            if supporting_neighbour:
+                if np.equal(self.building_zone, self.target).all():
+                    return self.get_obs(), torch.tensor(0), torch.tensor(1), torch.tensor(0), {}
+                else:
+                    if self.building_zone[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]] == self.target[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]]:
+                        if self.timestep_elapsed > MAX_TIMESTEP:
+                            return self.get_obs(), torch.tensor(-0.3), torch.tensor(0), torch.tensor(1), {}
+                        else:
+                            return self.get_obs(), torch.tensor(-0.3), torch.tensor(0), torch.tensor(0), {}
+                    else:
+                        if self.timestep_elapsed > MAX_TIMESTEP:
+                            return self.get_obs(), torch.tensor(-1), torch.tensor(0), torch.tensor(1), {}
+                        else:
+                            return self.get_obs(), torch.tensor(-1), torch.tensor(0), torch.tensor(0), {}
+            else:
+                if self.timestep_elapsed > MAX_TIMESTEP:
+                    return self.get_obs(), torch.tensor(-1), torch.tensor(0), torch.tensor(1), {}        
+                else:
+                    return self.get_obs(), torch.tensor(-1), torch.tensor(0), torch.tensor(0), {}
+ 
     def render(self):
-        if self.render_mode == "rgb_array":
-            return self._render_frame()
+        agent_pos_grid = np.zeros((self.dimension_size, self.dimension_size, self.dimension_size), dtype=int)
+        agent_pos_grid[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]] = 1
 
-    def _render_frame(self):
-        if self.window is None and self.render_mode == "human":
-            pygame.init()
-            pygame.display.init()
-            self.window = pygame.display.set_mode((self.window_size, self.window_size))
-        if self.clock is None and self.render_mode == "human":
-            self.clock = pygame.time.Clock()
+        # prepare some coordinates
+        targetCube = self.building_zone == 1
+        agentCube = agent_pos_grid == 1
 
-        canvas = pygame.Surface((self.window_size, self.window_size))
-        canvas.fill((255, 255, 255))
-        pix_square_size = (
-            self.window_size / self.size
-        )  # The size of a single grid square in pixels
 
-        # First we draw the target
-        pygame.draw.rect(
-            canvas,
-            (255, 0, 0),
-            pygame.Rect(
-                pix_square_size * self._target_location,
-                (pix_square_size, pix_square_size),
-            ),
-        )
-        # Now we draw the agent
-        pygame.draw.circle(
-            canvas,
-            (0, 0, 255),
-            (self._agent_location + 0.5) * pix_square_size,
-            pix_square_size / 3,
-        )
 
-        # Finally, add some gridlines
-        for x in range(self.size + 1):
-            pygame.draw.line(
-                canvas,
-                0,
-                (0, pix_square_size * x),
-                (self.window_size, pix_square_size * x),
-                width=3,
-            )
-            pygame.draw.line(
-                canvas,
-                0,
-                (pix_square_size * x, 0),
-                (pix_square_size * x, self.window_size),
-                width=3,
-            )
 
-        if self.render_mode == "human":
-            # The following line copies our drawings from `canvas` to the visible window
-            self.window.blit(canvas, canvas.get_rect())
-            pygame.event.pump()
-            pygame.display.update()
+        cube1 = targetCube | agentCube
+        # set the colors of each object
+        colors = np.empty(cube1.shape, dtype=object)
+        colors[targetCube] = 'blue'
+        colors[agentCube] = 'yellow'
+        #print(colors)
 
-            # We need to ensure that human-rendering occurs at the predefined framerate.
-            # The following line will automatically add a delay to keep the framerate stable.
-            self.clock.tick(self.metadata["render_fps"])
-        else:  # rgb_array
-            return np.transpose(
-                np.array(pygame.surfarray.pixels3d(canvas)), axes=(1, 0, 2)
-            )
+        ax = plt.figure().add_subplot(projection='3d')
+        ax.voxels(cube1, facecolors=colors, edgecolor='k')
 
+        plt.show()
+        return
+    
+    
     def close(self):
-        if self.window is not None:
-            pygame.display.quit()
-            pygame.quit()
+        pass
+    
+if __name__ == "__main__":
+    # List of actions
+    # 0: forward, 1: backward
+    # 2: left, 3: right
+    # 4: up, 5: down
+    # 6: place block
+    #env.step(0)
+    #env.step(6)
+    #env.step(4)
+    #env.step(6)
+    #env.step(3)
+    #env.step(6)
+    ##env.render()
+    #print(env.building_zone)
+    env = GridWorldEnv(4)
+
+    env.reset()
+    env.step(0)
+    env.step(3)
+    env.step(6)
+    env.step(4)
+    env.step(6)
+    env.step(3)
+    env.step(6)
+    env.step(3)
+    env.step(6)
+    env.step(3)
+    env.step(5)
+    env.step(1)
+    env.step(2)
+    env.step(2)
+    env.step(2)
+    env.step(2)
+    env.render()
+    
