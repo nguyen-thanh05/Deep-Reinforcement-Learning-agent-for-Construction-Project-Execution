@@ -267,8 +267,9 @@ def testThread(env, agent_id):
     action_input = (6, 0)
     env.step(action_input)
     action_input = (4, 0)
-    env.step(action_input)
-    env._render(0)
+    s, _, _, _, _ = env.step(action_input)
+    print("state shape is ",  s.shape)
+    #env._render(0)
     print("DONE THREAD")
     return
     
@@ -278,13 +279,15 @@ if __name__ == "__main__":
     # 2: left, 3: right
     # 4: up, 5: down
     # 6: place block
-    env = SharedGridWorldEnv(4, 1)
-    t1 = Thread(target=testThread, args=(env, 0))
+    env = SharedGridWorldEnv(5, 2)
+    T = [Thread(target=testThread, args=(env, 0)), Thread(target=testThread, args=(env, 1))]
     print("START THREAD")
-    t1.start()
+    for t1 in T:
+        t1.start()
 
 
-    t1.join()
+    for t2 in T:
+        t2.join()
     print("JOIN THREAD")
 
     
