@@ -147,31 +147,31 @@ class GridWorldEnv(gym.Env):
         # return observation, reward, terminated, truncated, info
         if move_cmd:
             if self.timestep_elapsed > MAX_TIMESTEP:
-                return self.get_obs(), torch.tensor(-0.2), torch.tensor(0), torch.tensor(1), {}
+                return self.get_obs(), -0.5, False, True, {}
             else:
-                return self.get_obs(), torch.tensor(-0.2), torch.tensor(0), torch.tensor(0), {}
+                return self.get_obs(), -0.5, False, False, {}
         elif place_cmd:
             if supporting_neighbour:
                 difference = self.target - self.building_zone
                 difference = np.isin(difference, 1)
                 if np.any(difference) == False:
-                    return self.get_obs(), torch.tensor(0), torch.tensor(1), torch.tensor(0), {}
+                    return self.get_obs(), 0, True, False, {}
                 else:
                     if self.building_zone[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]] == self.target[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]]:
                         if self.timestep_elapsed > MAX_TIMESTEP:
-                            return self.get_obs(), torch.tensor(-0.2), torch.tensor(0), torch.tensor(1), {}
+                            return self.get_obs(), 0.5, False, True, {}
                         else:
-                            return self.get_obs(), torch.tensor(-0.2), torch.tensor(0), torch.tensor(0), {}
+                            return self.get_obs(), 0.5, False, False, {}
                     else:
                         if self.timestep_elapsed > MAX_TIMESTEP:
-                            return self.get_obs(), torch.tensor(-0.5), torch.tensor(0), torch.tensor(1), {}
+                            return self.get_obs(), -1, False, True, {}
                         else:
-                            return self.get_obs(), torch.tensor(-0.5), torch.tensor(0), torch.tensor(0), {}
+                            return self.get_obs(), -1, False, False, {}
             else:
                 if self.timestep_elapsed > MAX_TIMESTEP:
-                    return self.get_obs(), torch.tensor(-0.5), torch.tensor(0), torch.tensor(1), {}        
+                    return self.get_obs(), -2.5, False, True, {}        
                 else:
-                    return self.get_obs(), torch.tensor(-0.5), torch.tensor(0), torch.tensor(0), {}
+                    return self.get_obs(), -2.5, False, False, {}
  
     
     def render(self):
