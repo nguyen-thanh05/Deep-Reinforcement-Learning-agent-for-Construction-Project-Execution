@@ -29,11 +29,11 @@ class SharedGridWorldEnv(gym.Env):
         self.reset()
     
     def reset(self, seed=None, options=None):
+        self.mutex.acquire()  # get lock to enter critical section
         self.building_zone = np.zeros((self.dimension_size, self.dimension_size, self.dimension_size), dtype=int)
 
         self.AgentsPos = np.zeros((self.num_agents, 3), dtype=int)
 
-        self.mutex.acquire()  # get lock to enter critical section
         
         random_start_pos = np.zeros(3, dtype=int)
         for i in range(self.num_agents):
@@ -109,7 +109,11 @@ class SharedGridWorldEnv(gym.Env):
         agent_id = actionTuple[1]
 
 
+        
         agent_pos = self.getAgentPos(agent_id)
+
+        self.mutex.acquire()  # get lock to enter critical section
+
         self.timestep_elapsed += 1
         move_cmd = False
         place_cmd = False
@@ -120,7 +124,6 @@ class SharedGridWorldEnv(gym.Env):
         # 6: pick
 
 
-        self.mutex.acquire()  # get lock to enter critical section
 
         if action == 1:
             # Y - 1
