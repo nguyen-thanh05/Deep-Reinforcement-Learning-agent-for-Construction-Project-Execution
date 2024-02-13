@@ -3,6 +3,9 @@ from gymnasium import spaces
 import numpy as np
 import matplotlib.pyplot as plt
 import torch
+
+
+from threading import Lock 
 MAX_TIMESTEP = 500
 
 class SharedGridWorldEnv(gym.Env): 
@@ -19,7 +22,7 @@ class SharedGridWorldEnv(gym.Env):
         self.observation_space = spaces.Box(low=0, high=255, shape=(64, 64, 3), dtype=np.uint8)
         self.dimension_size = dimension_size
         self.timestep_elapsed = 0
-
+        self.mutex = Lock()
         self.num_agents = num_agents
 
         self.reset()
@@ -27,8 +30,9 @@ class SharedGridWorldEnv(gym.Env):
     def reset(self, seed=None, options=None):
         self.building_zone = np.zeros((self.dimension_size, self.dimension_size, self.dimension_size), dtype=int)
 
-
         self.AgentsPos = np.zeros((self.num_agents, 3), dtype=int)
+
+        self.mutex.acquire()  # get lock to enter critical section
         
         random_start_pos = np.zeros(3, dtype=int)
         for i in range(self.num_agents):
@@ -49,7 +53,11 @@ class SharedGridWorldEnv(gym.Env):
         self.observation_space = spaces.Box(low=0, high=1, shape=(3, self.dimension_size, self.dimension_size, self.dimension_size), dtype=int)
 
         self.timestep_elapsed = 0
-        return self.get_obs(0), {}
+
+
+        obs = self.get_obs(0)
+        self.mutex.release()
+        return obs, {}
 
     def getAgentPos(self, agent_id=0):
         return self.AgentsPos[agent_id]
@@ -93,6 +101,9 @@ class SharedGridWorldEnv(gym.Env):
             self.target[p[0], p[1], p[2]] = 1
 
     def step(self, actionTuple):
+
+
+
         action = actionTuple[0]
         agent_id = actionTuple[1]
 
@@ -106,6 +117,10 @@ class SharedGridWorldEnv(gym.Env):
         # 2: left, 3: right
         # 4: up, 5: down
         # 6: pick
+
+
+        self.mutex.acquire()  # get lock to enter critical section
+
         if action == 1:
             # Y - 1
             if agent_pos[1] > 0:
@@ -200,8 +215,13 @@ class SharedGridWorldEnv(gym.Env):
                     return self.get_obs(agent_id), torch.tensor(-0.5), torch.tensor(0), torch.tensor(1), {}        
                 else:
                     return self.get_obs(agent_id), torch.tensor(-0.5), torch.tensor(0), torch.tensor(0), {}
+
+        self.mutex.release()  # release lock to exit critical section
  
-    def render(self):
+    def render(self, agent_id):
+        if (agent_id != 0): return # only master agent can render
+
+
         agent_pos = self.getAgentPos(0)
         agent_pos_grid = np.zeros((self.dimension_size, self.dimension_size, self.dimension_size), dtype=int)
         for i in range(self.num_agents):
@@ -246,7 +266,7 @@ if __name__ == "__main__":
     #env.step(6)
     ##env.render()
     #print(env.building_zone)
-    env = SharedGridWorldEnv(4, 2)
+    env = SharedGridWorldEnv(4, 1)
     action_input = (0, 0)
     env.reset()
     env.step(action_input)
@@ -254,5 +274,5 @@ if __name__ == "__main__":
     env.step(action_input)
     action_input = (4, 0)
     env.step(action_input)
-    env.render()
+    env.render(0)
     
