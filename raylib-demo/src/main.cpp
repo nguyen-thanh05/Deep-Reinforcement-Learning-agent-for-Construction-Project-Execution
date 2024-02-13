@@ -14,94 +14,45 @@
 #include "raylib.h"
 #include "rlgl.h"
 
-void DrawXYGrid(int slices, float spacing)
+
+void DrawPlanes(int x, int y, int z, float spacing)
 {
+    int max_dim = x > y ? x : (y > z ? y : z);
+    float lineLength = (float) max_dim * spacing;
+
     rlBegin(RL_LINES);
-    for (int i = 0; i <= slices; i++)
-    {
-        if (i == 0)
-        {
+    for (int i = 0; i <= max_dim; i++) {
+        float lineOffset = (float) i * spacing;
+        if (i == 0) {
             rlColor3f(0.0f, 0.5f, 0.5f);
             rlColor3f(0.0f, 0.5f, 0.5f);
             rlColor3f(0.0f, 0.5f, 0.5f);
             rlColor3f(0.0f, 0.5f, 0.5f);
-        }
-        else
-        {
+        } else {
             rlColor3f(0.75f, 0.75f, 0.75f);
             rlColor3f(0.75f, 0.75f, 0.75f);
             rlColor3f(0.75f, 0.75f, 0.75f);
             rlColor3f(0.75f, 0.75f, 0.75f);
         }
+        
+        rlVertex3f(0.0f, 0.0f, lineOffset);
+        rlVertex3f(0.0f, lineLength, lineOffset);
+        rlVertex3f(lineOffset, 0.0f, 0.0f);
+        rlVertex3f(lineOffset, lineLength, 0.0f);
 
-        rlVertex3f((float)i*spacing,  0.0f, 0.0f);
-        rlVertex3f((float)i*spacing, (float)slices*spacing, 0.0f);
+        rlVertex3f(0.0f, 0.0f, lineOffset);
+        rlVertex3f(lineLength, 0.0f, lineOffset);
+        rlVertex3f(0.0f, lineOffset, 0.0f);
+        rlVertex3f(lineLength, lineOffset, 0.0f);
 
-        rlVertex3f(0.0f, (float)i*spacing, 0.0f);
-        rlVertex3f((float)slices*spacing, (float)i*spacing, 0.0f);
+        rlVertex3f(0.0f, lineOffset, 0.0f);
+        rlVertex3f(0.0f, lineOffset, lineLength);
+        rlVertex3f(lineOffset, 0.0f, 0.0f);
+        rlVertex3f(lineOffset, 0.0f, lineLength);
+
     }
     rlEnd();
 }
-
-/* Just changing the coordinates around, I have no idea how these work */
-void DrawXZGrid(int slices, float spacing)
-{
-    rlBegin(RL_LINES);
-    for (int i = 0; i <= slices; i++)
-    {
-        if (i == 0)
-        {
-            rlColor3f(0.0f, 0.5f, 0.5f);
-            rlColor3f(0.0f, 0.5f, 0.5f);
-            rlColor3f(0.0f, 0.5f, 0.5f);
-            rlColor3f(0.0f, 0.5f, 0.5f);
-        }
-        else
-        {
-            rlColor3f(0.75f, 0.75f, 0.75f);
-            rlColor3f(0.75f, 0.75f, 0.75f);
-            rlColor3f(0.75f, 0.75f, 0.75f);
-            rlColor3f(0.75f, 0.75f, 0.75f);
-        }
-
-        rlVertex3f((float)i*spacing,  0.0f, 0.0f);
-        rlVertex3f((float)i*spacing, 0.0f, (float)slices*spacing);
-
-        rlVertex3f(0.0f, 0.0f, (float)i*spacing);
-        rlVertex3f((float)slices*spacing, 0.0f, (float)i*spacing);
-    }
-    rlEnd();
-}
-
-void DrawYZGrid(int slices, float spacing)
-{
-    rlBegin(RL_LINES);
-    for (int i = 0; i <= slices; i++)
-    {
-        if (i == 0)
-        {
-            rlColor3f(0.0f, 0.5f, 0.5f);
-            rlColor3f(0.0f, 0.5f, 0.5f);
-            rlColor3f(0.0f, 0.5f, 0.5f);
-            rlColor3f(0.0f, 0.5f, 0.5f);
-        }
-        else
-        {
-            rlColor3f(0.75f, 0.75f, 0.75f);
-            rlColor3f(0.75f, 0.75f, 0.75f);
-            rlColor3f(0.75f, 0.75f, 0.75f);
-            rlColor3f(0.75f, 0.75f, 0.75f);
-        }
-
-        rlVertex3f(0.0f, (float)i*spacing,   0.0f);
-        rlVertex3f(0.0f, (float)i*spacing,  (float)slices*spacing);
-
-        rlVertex3f(0.0f, 0.0f, (float)i*spacing);
-        rlVertex3f(0.0f, (float)slices*spacing, (float)i*spacing);
-    }
-    rlEnd();
-}
-
 
 //------------------------------------------------------------------------------------
 // Program main entry point
@@ -182,19 +133,15 @@ int main()
             DrawCubeWires(cubePosition, cubeSize.x, cubeSize.y, cubeSize.z, DARKGRAY);
         }
 
-        DrawRay(ray, MAROON);
-        DrawXZGrid(4, 1.0f);
-        DrawXYGrid(4, 1.0f);
-        DrawYZGrid(4, 1.0f);
+//        DrawRay(ray, MAROON);
+//        DrawXZGrid(3, 1.0f);
+//        DrawXYGrid(4, 1.0f);
+//        DrawYZGrid(5, 1.0f);
+        DrawPlanes(3,3,4, 1.0f);
 
         EndMode3D();
-
-//            DrawText("Try clicking on the box with your mouse!", 240, 10, 20, DARKGRAY);
-
         if (collision.hit) DrawText("BOX SELECTED", (screenWidth - MeasureText("BOX SELECTED", 30)) / 2, (int)(screenHeight * 0.1f), 30, GREEN);
-
-//            DrawText("Right click mouse to toggle camera controls", 10, 430, 10, GRAY);
-
+        
         DrawFPS(10, 10);
 
         EndDrawing();
