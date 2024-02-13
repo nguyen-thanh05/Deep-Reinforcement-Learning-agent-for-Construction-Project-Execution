@@ -1,6 +1,14 @@
 setup.py
+SharedGridWorld_env/__init__.py
 SharedGridWorld_env.egg-info/PKG-INFO
 SharedGridWorld_env.egg-info/SOURCES.txt
 SharedGridWorld_env.egg-info/dependency_links.txt
 SharedGridWorld_env.egg-info/requires.txt
 SharedGridWorld_env.egg-info/top_level.txt
+SharedGridWorld_env/envs/__init__.py
+SharedGridWorld_env/envs/shared_grid_world.py
+SharedGridWorld_env/wrappers/__init__.py
+SharedGridWorld_env/wrappers/clip_reward.py
+SharedGridWorld_env/wrappers/discrete_actions.py
+SharedGridWorld_env/wrappers/reacher_weighted_reward.py
+SharedGridWorld_env/wrappers/relative_position.py
