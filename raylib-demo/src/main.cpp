@@ -11,6 +11,8 @@
 *
 ********************************************************************************************/
 
+#include <iostream>
+#include <vector>
 #include "raylib.h"
 #include "rlgl.h"
 
@@ -64,6 +66,8 @@ int main()
     const int screenWidth = 800;
     const int screenHeight = 450;
 
+    std::vector<Vector3> boxes {{0.5f, 0.5f, 0.5f}};
+
     InitWindow(screenWidth, screenHeight, "raylib [core] example - 3d picking");
 
     // Define the camera to look into our 3d world
@@ -74,7 +78,6 @@ int main()
     camera.fovy = 45.0f;                                // Camera field-of-view Y
     camera.projection = CAMERA_PERSPECTIVE;             // Camera projection type
 
-    Vector3 cubePosition = { 0.5f, 0.5f, 0.5f };
     Vector3 cubeSize = { 1.0f, 1.0f, 1.0f };
 
     Ray ray = { 0 };                    // Picking line ray
@@ -83,12 +86,15 @@ int main()
     SetTargetFPS(60);                   // Set our game to run at 60 frames-per-second
     //--------------------------------------------------------------------------------------
 
+    Vector3* adjacentCube = nullptr;
     // Main game loop
     while (!WindowShouldClose())        // Detect window close button or ESC key
     {
         // Update
         //----------------------------------------------------------------------------------
         if (IsCursorHidden()) UpdateCamera(&camera, CAMERA_FREE);
+        bool foundAdjCube = false;
+
 
         // Toggle camera controls
         if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT))
@@ -97,19 +103,6 @@ int main()
             else DisableCursor();
         }
 
-        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
-        {
-            if (!collision.hit)
-            {
-                ray = GetMouseRay(GetMousePosition(), camera);
-
-                // Check collision between ray and box
-                collision = GetRayCollisionBox(ray,
-                                               (BoundingBox){(Vector3){ cubePosition.x - cubeSize.x/2, cubePosition.y - cubeSize.y/2, cubePosition.z - cubeSize.z/2 },
-                                                             (Vector3){ cubePosition.x + cubeSize.x/2, cubePosition.y + cubeSize.y/2, cubePosition.z + cubeSize.z/2 }});
-            }
-            else collision.hit = false;
-        }
         //----------------------------------------------------------------------------------
 
         // Draw
@@ -120,28 +113,47 @@ int main()
 
         BeginMode3D(camera);
 
-        if (collision.hit)
-        {
-            DrawCube(cubePosition, cubeSize.x, cubeSize.y, cubeSize.z, RED);
-            DrawCubeWires(cubePosition, cubeSize.x, cubeSize.y, cubeSize.z, MAROON);
-
-            DrawCubeWires(cubePosition, cubeSize.x + 0.2f, cubeSize.y + 0.2f, cubeSize.z + 0.2f, GREEN);
-        }
-        else
-        {
-            DrawCube(cubePosition, cubeSize.x, cubeSize.y, cubeSize.z, GRAY);
-            DrawCubeWires(cubePosition, cubeSize.x, cubeSize.y, cubeSize.z, DARKGRAY);
-        }
-
-//        DrawRay(ray, MAROON);
-//        DrawXZGrid(3, 1.0f);
-//        DrawXYGrid(4, 1.0f);
-//        DrawYZGrid(5, 1.0f);
         DrawPlanes(3,3,4, 1.0f);
+        for (Vector3& cube : boxes) {
+            DrawCube(cube, cubeSize.x, cubeSize.y, cubeSize.z, RED);
+            DrawCubeWires(cube, cubeSize.x, cubeSize.y, cubeSize.z, MAGENTA);
+
+            if (!foundAdjCube) {
+                ray = GetMouseRay(GetMousePosition(), camera);
+                collision = GetRayCollisionBox(ray,
+                                               {{ cube.x - cubeSize.x/2, cube.y - cubeSize.y/2, cube.z - cubeSize.z/2 },
+                                                { cube.x + cubeSize.x/2, cube.y + cubeSize.y/2, cube.z + cubeSize.z/2 }});
+                if (collision.hit) {
+                    foundAdjCube = true;
+                    adjacentCube = &cube;
+                }
+            }
+        }
+        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+        {
+            if (foundAdjCube && adjacentCube != nullptr) {
+                Vector3 placement = *adjacentCube;
+                Vector3& collPoint = collision.point;
+                if (collPoint.x == adjacentCube->x + 0.5) {
+                    placement.x = adjacentCube->x + 1;
+                } else if (collPoint.x == adjacentCube->x - 0.5) {
+                    placement.x = adjacentCube->x - 1;
+                } else if (collPoint.y == adjacentCube->y + 0.5) {
+                    placement.y = adjacentCube->y + 1;
+                } else if (collPoint.y == adjacentCube->y - 0.5) {
+                    placement.y = adjacentCube->y - 1;
+                } else if (collPoint.z == adjacentCube->z + 0.5) {
+                    placement.z = adjacentCube->z + 1;
+                } else if (collPoint.z == adjacentCube->z - 0.5) {
+                    placement.z = adjacentCube->z - 1;
+                }
+
+                boxes.push_back(placement);
+            }
+        }
 
         EndMode3D();
-        if (collision.hit) DrawText("BOX SELECTED", (screenWidth - MeasureText("BOX SELECTED", 30)) / 2, (int)(screenHeight * 0.1f), 30, GREEN);
-        
+
         DrawFPS(10, 10);
 
         EndDrawing();
