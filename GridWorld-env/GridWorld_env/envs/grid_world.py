@@ -46,13 +46,22 @@ class GridWorldEnv(gym.Env):
         self.target = np.zeros((self.dimension_size, self.dimension_size, self.dimension_size), dtype=int)
         
         # Hardcoding 4 columns, and 4 beams across the 4 columns. TO BE CHANGED TO BE MORE DYNAMIC AND USEABLE
+        possible_targets = []
         
-        points = [
-            [0, 0, 0], [0, 0, 1], [0, 0, 2], [0, 0, 3], # column 1, 4 block high in the left upper corner
-            [0, self.dimension_size - 1, 0], [0, self.dimension_size - 1, 1], [0, self.dimension_size - 1, 2], [0, self.dimension_size - 1, 3], # column 2, 4 block high in the left lower corner
-            [self.dimension_size - 1, 0, 0], [self.dimension_size - 1, 0, 1], [self.dimension_size - 1, 0, 2], [self.dimension_size - 1, 0, 3], # column 3, 4 block high in the right upper corner
-            [self.dimension_size - 1, self.dimension_size - 1, 0], [self.dimension_size - 1, self.dimension_size - 1, 1], [self.dimension_size - 1, self.dimension_size - 1, 2], [self.dimension_size - 1, self.dimension_size - 1, 3], # column 4, 4 block high in the right lower corner
-        ]
+        points = []
+        for i in range(self.dimension_size):
+            points.append([0, 0, i]) # column 1 at position (0, 0)
+            points.append([0, self.dimension_size - 1, i]) # column 2 at position (0, dimension_size - 1)
+            points.append([self.dimension_size - 1, 0, i]) # column 3 at position (dimension_size - 1, 0)
+            points.append([self.dimension_size - 1, self.dimension_size - 1, i]) # column 4 at position (dimension_size - 1, dimension_size - 1)
+            
+            points.append([0, i, self.dimension_size - 1]) # beam 1 connecting column 1 and column 2
+            points.append([self.dimension_size - 1, i, self.dimension_size - 1]) # beam 2 connecting column 3 and column 4
+            points.append([i, 0, self.dimension_size - 1]) # beam 3 connecting column 1 and column 3
+            points.append([i, self.dimension_size - 1, self.dimension_size - 1]) # beam 4 connecting column 2 and column 4
+                   
+        
+        possible_targets.append(points)                      
         
         for p in points:
             self.target[p[0], p[1], p[2]] = 1
@@ -166,24 +175,30 @@ class GridWorldEnv(gym.Env):
         agent_pos_grid[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]] = 1
 
         # prepare some coordinates
-        targetCube = self.building_zone == 1
-        agentCube = agent_pos_grid == 1
+        building_zone_cube = self.building_zone == 1
+        agent_position_cube = agent_pos_grid == 1
 
 
+        fig = plt.figure()
 
-
-        cube1 = targetCube | agentCube
+        final_rendering_cube = building_zone_cube | agent_position_cube
         # set the colors of each object
-        colors = np.empty(cube1.shape, dtype=object)
-        colors[targetCube] = '#7A88CCC0'
-        colors[agentCube] = '#FFD65DC0'
+        colors = np.empty(final_rendering_cube.shape, dtype=object)
+        colors[building_zone_cube] = '#7A88CCC0'
+        colors[agent_position_cube] = '#FFD65DC0'
         #print(colors)
 
-        ax = plt.figure().add_subplot(projection='3d')
-        ax.voxels(cube1, facecolors=colors, edgecolor='k')
+        ax = fig.add_subplot(1, 2, 1, projection='3d')
+        ax.voxels(final_rendering_cube, facecolors=colors, edgecolor='k')
 
+        target_cube = self.target == 1
+        # set the colors of each object
+        colors = np.empty(target_cube.shape, dtype=object)
+        colors[target_cube] = '#7A88CCC0'
+        ax = fig.add_subplot(1, 2, 2, projection='3d')
+        ax.voxels(target_cube, facecolors=colors, edgecolor='k')
+        
         plt.show()
-        return
     
     
     def close(self):
@@ -203,24 +218,8 @@ if __name__ == "__main__":
     #env.step(6)
     ##env.render()
     #print(env.building_zone)
-    env = GridWorldEnv(4)
+    env = GridWorldEnv(8)
 
-    env.reset()
-    env.step(0)
-    env.step(3)
-    env.step(6)
-    env.step(4)
-    env.step(6)
-    env.step(3)
-    env.step(6)
-    env.step(3)
-    env.step(6)
-    env.step(3)
-    env.step(5)
-    env.step(1)
-    env.step(2)
-    env.step(2)
-    env.step(2)
-    env.step(2)
-    env.render()
+    
+    env.render("target")
     
