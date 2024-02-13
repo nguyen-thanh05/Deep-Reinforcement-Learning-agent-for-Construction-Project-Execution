@@ -1,9 +1,12 @@
+from math import ceil
+from turtle import onclick
 import gymnasium as gym
 from gymnasium import spaces
 import numpy as np
 import matplotlib.pyplot as plt
 import torch
 MAX_TIMESTEP = 500
+
 
 class GridWorldEnv(gym.Env): 
     
@@ -170,6 +173,7 @@ class GridWorldEnv(gym.Env):
                 else:
                     return self.get_obs(), torch.tensor(-0.5), torch.tensor(0), torch.tensor(0), {}
  
+    
     def render(self):
         agent_pos_grid = np.zeros((self.dimension_size, self.dimension_size, self.dimension_size), dtype=int)
         agent_pos_grid[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]] = 1
@@ -200,7 +204,55 @@ class GridWorldEnv(gym.Env):
         
         plt.show()
     
-    
+    """def define_new_target(self):
+        empty_zone = np.zeros((self.dimension_size, self.dimension_size, self.dimension_size), dtype=int)
+        fig = plt.figure()
+        ax = fig.add_subplot(1, 1, 1, projection='3d')
+        ax.voxels(empty_zone, facecolors='#7A88CCC0', edgecolor='k')
+        
+        def on_click(event):
+            pressed = ax.button_pressed
+            ax.button_pressed = -1 # some value that doesn't make sense.
+            coords = ax.format_coord(event.xdata, event.ydata) # coordinates string in the form x=value, y=value, z= value
+            ax.button_pressed = pressed
+            print(coords)
+            print(float("-10"))
+            
+            x, y, z = coords.split(", ")
+            
+            if x[2] not in ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]:
+                x = x.split("=")[1]
+                x = "-" + x[1:]
+                x = ceil(float(x))
+            else:
+                x = ceil(float(x.split("=")[1]))
+            if y[2] not in ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]:
+                y = y.split("=")[1]
+                y = "-" + y[1:]
+                y = ceil(float(y))
+            else:
+                y = ceil(float(y.split("=")[1]))
+            if z[2] not in ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]:
+                z = z.split("=")[1]
+                z = "-" + z[1:]
+                z = ceil(float(z))
+            else:
+                z = ceil(float(z.split("=")[1]))
+           
+            
+            empty_zone[x, y, z] = 1
+            target_cube = empty_zone == 1
+            # set the colors of each object
+            colors = np.empty(target_cube.shape, dtype=object)
+            colors[target_cube] = '#7A88CCC0'
+            ax.voxels(target_cube, facecolors=colors, edgecolor='k')
+            plt.show()
+            return coords        
+
+        print("Click on the target position")
+        cid = fig.canvas.mpl_connect('button_release_event', on_click)
+        plt.show()"""
+        
     def close(self):
         pass
     
@@ -221,5 +273,5 @@ if __name__ == "__main__":
     env = GridWorldEnv(8)
 
     
-    env.render("target")
+    env.define_new_target()
     
