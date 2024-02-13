@@ -57,13 +57,22 @@ class SharedGridWorldEnv(gym.Env):
     def get_obs(self, agent_id):
         # clear agent_pos_grid
         # TOOD: return the 4 TUPLES
-
-        
+        # 1. agent position
+        # 2. other agents position
+        # 3. building zone
+        # 4. target zone
 
         agent_pos_grid = np.zeros((self.dimension_size, self.dimension_size, self.dimension_size), dtype=int)
         agent_pos_grid[self.AgentsPos[agent_id][0], self.AgentsPos[agent_id][1], self.AgentsPos[agent_id][2]] = 1
+
+
+        other_agents_pos_grid = np.zeros((self.dimension_size, self.dimension_size, self.dimension_size), dtype=int)
+        for i in range(self.num_agents):
+            if i != agent_id:
+                other_agents_pos_grid[self.AgentsPos[i][0], self.AgentsPos[i][1], self.AgentsPos[i][2]] = 1
+
         
-        return np.stack((self.building_zone, agent_pos_grid, self.target), axis=0)
+        return np.stack((agent_pos_grid, other_agents_pos_grid ,self.building_zone ,self.target), axis=0)
         
     def _get_info(self):
         pass
@@ -195,7 +204,9 @@ class SharedGridWorldEnv(gym.Env):
     def render(self):
         agent_pos = self.getAgentPos(0)
         agent_pos_grid = np.zeros((self.dimension_size, self.dimension_size, self.dimension_size), dtype=int)
-        agent_pos_grid[agent_pos[0], agent_pos[1], agent_pos[2]] = 1
+        for i in range(self.num_agents):
+            agent_pos_grid[self.AgentsPos[i][0], self.AgentsPos[i][1], self.AgentsPos[i][2]] = 1
+        #agent_pos_grid[agent_pos[0], agent_pos[1], agent_pos[2]] = 1
 
         # prepare some coordinates
         targetCube = self.building_zone == 1
@@ -235,24 +246,13 @@ if __name__ == "__main__":
     #env.step(6)
     ##env.render()
     #print(env.building_zone)
-    env = SharedGridWorldEnv(4, 1)
-
+    env = SharedGridWorldEnv(4, 2)
+    action_input = (0, 0)
     env.reset()
-    env.step(0)
-    env.step(3)
-    env.step(6)
-    env.step(4)
-    env.step(6)
-    env.step(3)
-    env.step(6)
-    env.step(3)
-    env.step(6)
-    env.step(3)
-    env.step(5)
-    env.step(1)
-    env.step(2)
-    env.step(2)
-    env.step(2)
-    env.step(2)
+    env.step(action_input)
+    action_input = (6, 0)
+    env.step(action_input)
+    action_input = (4, 0)
+    env.step(action_input)
     env.render()
     
