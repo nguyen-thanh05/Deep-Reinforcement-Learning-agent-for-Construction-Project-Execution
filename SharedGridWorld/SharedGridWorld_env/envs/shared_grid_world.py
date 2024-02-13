@@ -1,11 +1,12 @@
 import gymnasium as gym
 from gymnasium import spaces
 import numpy as np
+import matplotlib
 import matplotlib.pyplot as plt
 import torch
 
 
-from threading import Lock 
+from threading import Lock , Thread
 MAX_TIMESTEP = 500
 
 class SharedGridWorldEnv(gym.Env): 
@@ -189,36 +190,42 @@ class SharedGridWorldEnv(gym.Env):
 
         # return observation, reward, terminated, truncated, info
         if move_cmd:
+            obs = self.get_obs(agent_id)
+            self.mutex.release()
             if self.timestep_elapsed > MAX_TIMESTEP:
-                return self.get_obs(agent_id), torch.tensor(-0.2), torch.tensor(0), torch.tensor(1), {}
+                return obs, torch.tensor(-0.2), torch.tensor(0), torch.tensor(1), {}
             else:
-                return self.get_obs(agent_id), torch.tensor(-0.2), torch.tensor(0), torch.tensor(0), {}
+                return obs, torch.tensor(-0.2), torch.tensor(0), torch.tensor(0), {}
         elif place_cmd:
+            obs = self.get_obs(agent_id)
+            self.mutex.release()
             if supporting_neighbour:
                 difference = self.target - self.building_zone
                 difference = np.isin(difference, 1)
+
+
+
                 if np.any(difference) == False:
-                    return self.get_obs(agent_id), torch.tensor(0), torch.tensor(1), torch.tensor(0), {}
+                    return obs, torch.tensor(0), torch.tensor(1), torch.tensor(0), {}
                 else:
                     if self.building_zone[agent_pos[0], agent_pos[1], agent_pos[2]] == self.target[agent_pos[0], agent_pos[1], agent_pos[2]]:
                         if self.timestep_elapsed > MAX_TIMESTEP:
-                            return self.get_obs(agent_id), torch.tensor(-0.2), torch.tensor(0), torch.tensor(1), {}
+                            return obs, torch.tensor(-0.2), torch.tensor(0), torch.tensor(1), {}
                         else:
-                            return self.get_obs(agent_id), torch.tensor(-0.2), torch.tensor(0), torch.tensor(0), {}
+                            return obs, torch.tensor(-0.2), torch.tensor(0), torch.tensor(0), {}
                     else:
                         if self.timestep_elapsed > MAX_TIMESTEP:
-                            return self.get_obs(agent_id), torch.tensor(-0.5), torch.tensor(0), torch.tensor(1), {}
+                            return obs, torch.tensor(-0.5), torch.tensor(0), torch.tensor(1), {}
                         else:
-                            return self.get_obs(agent_id), torch.tensor(-0.5), torch.tensor(0), torch.tensor(0), {}
+                            return obs, torch.tensor(-0.5), torch.tensor(0), torch.tensor(0), {}
             else:
                 if self.timestep_elapsed > MAX_TIMESTEP:
-                    return self.get_obs(agent_id), torch.tensor(-0.5), torch.tensor(0), torch.tensor(1), {}        
+                    return obs, torch.tensor(-0.5), torch.tensor(0), torch.tensor(1), {}        
                 else:
-                    return self.get_obs(agent_id), torch.tensor(-0.5), torch.tensor(0), torch.tensor(0), {}
+                    return obs, torch.tensor(-0.5), torch.tensor(0), torch.tensor(0), {}
 
-        self.mutex.release()  # release lock to exit critical section
  
-    def render(self, agent_id):
+    def _render(self, agent_id):
         if (agent_id != 0): return # only master agent can render
 
 
@@ -251,22 +258,9 @@ class SharedGridWorldEnv(gym.Env):
     
     def close(self):
         pass
-    
-if __name__ == "__main__":
-    # List of actions
-    # 0: forward, 1: backward
-    # 2: left, 3: right
-    # 4: up, 5: down
-    # 6: place block
-    #env.step(0)
-    #env.step(6)
-    #env.step(4)
-    #env.step(6)
-    #env.step(3)
-    #env.step(6)
-    ##env.render()
-    #print(env.building_zone)
-    env = SharedGridWorldEnv(4, 1)
+
+
+def testThread(env, agent_id):
     action_input = (0, 0)
     env.reset()
     env.step(action_input)
@@ -274,5 +268,23 @@ if __name__ == "__main__":
     env.step(action_input)
     action_input = (4, 0)
     env.step(action_input)
-    env.render(0)
+    env._render(0)
+    print("DONE THREAD")
+    return
+    
+if __name__ == "__main__":
+    # List of actions
+    # 0: forward, 1: backward
+    # 2: left, 3: right
+    # 4: up, 5: down
+    # 6: place block
+    env = SharedGridWorldEnv(4, 1)
+    t1 = Thread(target=testThread, args=(env, 0))
+    print("START THREAD")
+    t1.start()
+
+
+    t1.join()
+    print("JOIN THREAD")
+
     
