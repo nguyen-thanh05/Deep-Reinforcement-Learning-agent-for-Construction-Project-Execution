@@ -6,7 +6,7 @@ from gymnasium import spaces
 import numpy as np
 import matplotlib.pyplot as plt
 import torch
-MAX_TIMESTEP = 700
+MAX_TIMESTEP = 300
 
 
 class GridWorldEnv(gym.Env): 
@@ -15,6 +15,7 @@ class GridWorldEnv(gym.Env):
         self.observation_space = spaces.Box(low=0, high=255, shape=(64, 64, 3), dtype=np.uint8)
         self.dimension_size = dimension_size
         self.timestep_elapsed = 0
+        self.record_sequence = []
         self.reset()
     
     def reset(self, seed=None, options=None):
@@ -22,7 +23,8 @@ class GridWorldEnv(gym.Env):
         
         random_start_pos = np.zeros(3, dtype=int)
         self.agent_pos = [random_start_pos[0], random_start_pos[1], random_start_pos[2]]
-        
+        print(self.record_sequence)
+        self.record_sequence = []
         # List of actions
         # 0: forward, 1: backward
         # 2: left, 3: right
@@ -262,6 +264,9 @@ class GridWorldEnv(gym.Env):
         
     def close(self):
         pass
+    
+    def get_sequence(self):
+        return self.record_sequence
     
 if __name__ == "__main__":
     # List of actions
