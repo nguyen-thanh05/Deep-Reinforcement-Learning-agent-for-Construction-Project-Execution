@@ -22,11 +22,11 @@ namespace GWEnv {
                   grid(w, vec<vec<int>>(h, vec<int>(d, 0))) {
             agent = std::move(_agent);
 
-            camera.position = (Vector3) {10.0f, 10.0f, 10.0f}; // Camera position
-            camera.target = (Vector3) {0.0f, 0.0f, 0.0f};      // Camera looking at point
-            camera.up = (Vector3) {0.0f, 1.0f, 0.0f};          // Camera up vector (rotation towards target)
-            camera.fovy = 45.0f;                                // Camera field-of-view Y
-            camera.projection = CAMERA_PERSPECTIVE;             // Camera projection type
+            camera.position = (Vector3) {6.5f, 8.5f, 8.5f};       // Camera position
+            camera.target = (Vector3) {0.0f, 0.0f, 0.0f};         // Camera looking at point
+            camera.up = (Vector3) {0.0f, 1.0f, 0.0f};             // Camera up vector (rotation towards target)
+            camera.fovy = 45.0f;                                            // Camera field-of-view Y
+            camera.projection = CAMERA_PERSPECTIVE;                         // Camera projection type
         }
 
         void Render();

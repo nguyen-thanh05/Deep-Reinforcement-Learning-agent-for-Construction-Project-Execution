@@ -26,11 +26,16 @@ namespace GWEnv {
         Action Step() override {
             if (IsCursorHidden()) return Action::NONE;
 
-//            if (IsKeyDown(KEY_A)) return Action::NONE
+            if (IsKeyPressed(KEY_W)) return Action::FORWARD;
+            if (IsKeyPressed(KEY_S)) return Action::BACKWARD;
+            if (IsKeyPressed(KEY_A)) return Action::LEFT;
+            if (IsKeyPressed(KEY_D)) return Action::RIGHT;
+            if (IsKeyPressed(KEY_E)) return Action::UP;
+            if (IsKeyPressed(KEY_Q)) return Action::DOWN;
+
             if (IsKeyPressed(KEY_ENTER)) return Action::PLACE;
-            if (IsKeyDown(KEY_X)) {
-                return Action::REMOVE;
-            }
+            if (IsKeyPressed(KEY_X)) return Action::REMOVE;
+
             return Action::NONE;
         }
 

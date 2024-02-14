@@ -92,7 +92,7 @@ bool GridWorld::AddBlock(uint32_t x, uint32_t y, uint32_t z, int blockType) {
 void GridWorld::Move(Action direction) {
     switch (direction) {
         case Action::RIGHT:
-            agentPos.x = std::min(h - 1, agentPos.x + 1);
+            agentPos.x = std::min(w - 1, agentPos.x + 1);
             break;
         case Action::LEFT:
             agentPos.x = std::max(0U, agentPos.x - 1);
@@ -101,12 +101,12 @@ void GridWorld::Move(Action direction) {
             agentPos.y = std::max(0U, agentPos.y - 1);
             break;
         case Action::UP:
-            agentPos.y = std::min(w - 1, agentPos.y + 1);
-            break;
-        case Action::FORWARD:
-            agentPos.z = std::min(d - 1, agentPos.z + 1);
+            agentPos.y = std::min(h - 1, agentPos.y + 1);
             break;
         case Action::BACKWARD:
+            agentPos.z = std::min(d - 1, agentPos.z + 1);
+            break;
+        case Action::FORWARD:
             agentPos.z = std::max(0U, agentPos.z - 1);
             break;
         default:
