@@ -22,40 +22,43 @@ void DrawPlanes(int x, int y, int z, float spacing)
     float yLength = (float) y * spacing;
     float zLength = (float) z * spacing;
 
+
     rlBegin(RL_LINES);
     for (int i = 0; i <= x; i++) {
         float lineOffset = (float) i * spacing;
-        rlColor3f(0.75f, 0.75f, 0.75f);
-
+        rlColor3f(0.25f, 0.25f, 1.0f);
         rlVertex3f(lineOffset, 0.0f, 0.0f);
         rlVertex3f(lineOffset, yLength, 0.0f);
+
+        rlColor3f(1.0f, 0.25f, 0.25f);
         rlVertex3f(lineOffset, 0.0f, 0.0f);
         rlVertex3f(lineOffset, 0.0f, zLength);
     }
 
     for (int i = 0; i <= y; i++) {
         float lineOffset = (float) i * spacing;
-        rlColor3f(0.75f, 0.75f, 0.75f);
-
+        rlColor3f(0.25f, 0.25f, 1.0f);
         rlVertex3f(0.0f, lineOffset, 0.0f);
         rlVertex3f(xLength, lineOffset, 0.0f);
+
+        rlColor3f(0.25f, 1.0f, 0.25f);
         rlVertex3f(0.0f, lineOffset, 0.0f);
         rlVertex3f(0.0f, lineOffset, zLength);
     }
 
     for (int i = 0; i <= z; i++) {
         float lineOffset = (float) i * spacing;
-        rlColor3f(0.75f, 0.75f, 0.75f);
-
+        rlColor3f(1.0f, 0.25f, 0.25f);
         rlVertex3f(0.0f, 0.0f, lineOffset);
         rlVertex3f(xLength, 0.0f, lineOffset);
+
+        rlColor3f(0.25f, 1.0f, 0.25f);
         rlVertex3f(0.0f, 0.0f, lineOffset);
         rlVertex3f(0.0f, yLength, lineOffset);
     }
 
     rlEnd();
 }
-
 
 //------------------------------------------------------------------------------------
 // Program main entry point
@@ -114,7 +117,7 @@ int main()
 
         BeginMode3D(camera);
 
-        DrawPlanes(3,3,4, 1.0f);
+        DrawPlanes(5, 5, 4, 1.0f);
         for (Vector3& cube : boxes) {
             DrawCube(cube, cubeSize.x, cubeSize.y, cubeSize.z, RED);
             DrawCubeWires(cube, cubeSize.x, cubeSize.y, cubeSize.z, MAGENTA);
