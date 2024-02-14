@@ -11,7 +11,6 @@
 *
 ********************************************************************************************/
 
-#include <iostream>
 #include <vector>
 #include "raylib.h"
 #include "rlgl.h"
@@ -19,42 +18,44 @@
 
 void DrawPlanes(int x, int y, int z, float spacing)
 {
-    int max_dim = x > y ? x : (y > z ? y : z);
-    float lineLength = (float) max_dim * spacing;
+    float xLength = (float) x * spacing;
+    float yLength = (float) y * spacing;
+    float zLength = (float) z * spacing;
 
     rlBegin(RL_LINES);
-    for (int i = 0; i <= max_dim; i++) {
+    for (int i = 0; i <= x; i++) {
         float lineOffset = (float) i * spacing;
-        if (i == 0) {
-            rlColor3f(0.0f, 0.5f, 0.5f);
-            rlColor3f(0.0f, 0.5f, 0.5f);
-            rlColor3f(0.0f, 0.5f, 0.5f);
-            rlColor3f(0.0f, 0.5f, 0.5f);
-        } else {
-            rlColor3f(0.75f, 0.75f, 0.75f);
-            rlColor3f(0.75f, 0.75f, 0.75f);
-            rlColor3f(0.75f, 0.75f, 0.75f);
-            rlColor3f(0.75f, 0.75f, 0.75f);
-        }
-        
-        rlVertex3f(0.0f, 0.0f, lineOffset);
-        rlVertex3f(0.0f, lineLength, lineOffset);
+        rlColor3f(0.75f, 0.75f, 0.75f);
+
         rlVertex3f(lineOffset, 0.0f, 0.0f);
-        rlVertex3f(lineOffset, lineLength, 0.0f);
-
-        rlVertex3f(0.0f, 0.0f, lineOffset);
-        rlVertex3f(lineLength, 0.0f, lineOffset);
-        rlVertex3f(0.0f, lineOffset, 0.0f);
-        rlVertex3f(lineLength, lineOffset, 0.0f);
-
-        rlVertex3f(0.0f, lineOffset, 0.0f);
-        rlVertex3f(0.0f, lineOffset, lineLength);
+        rlVertex3f(lineOffset, yLength, 0.0f);
         rlVertex3f(lineOffset, 0.0f, 0.0f);
-        rlVertex3f(lineOffset, 0.0f, lineLength);
-
+        rlVertex3f(lineOffset, 0.0f, zLength);
     }
+
+    for (int i = 0; i <= y; i++) {
+        float lineOffset = (float) i * spacing;
+        rlColor3f(0.75f, 0.75f, 0.75f);
+
+        rlVertex3f(0.0f, lineOffset, 0.0f);
+        rlVertex3f(xLength, lineOffset, 0.0f);
+        rlVertex3f(0.0f, lineOffset, 0.0f);
+        rlVertex3f(0.0f, lineOffset, zLength);
+    }
+
+    for (int i = 0; i <= z; i++) {
+        float lineOffset = (float) i * spacing;
+        rlColor3f(0.75f, 0.75f, 0.75f);
+
+        rlVertex3f(0.0f, 0.0f, lineOffset);
+        rlVertex3f(xLength, 0.0f, lineOffset);
+        rlVertex3f(0.0f, 0.0f, lineOffset);
+        rlVertex3f(0.0f, yLength, lineOffset);
+    }
+
     rlEnd();
 }
+
 
 //------------------------------------------------------------------------------------
 // Program main entry point

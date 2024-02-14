@@ -1,13 +1,15 @@
 cmake_minimum_required(VERSION 3.10)
 project(GridWorldEnv)
 
+set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
+set(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
 # Set the path to raylib directory
 set(RAYLIB_DIR "${CMAKE_SOURCE_DIR}/raylib")
 
 # Add raylib as a subdirectory
 add_subdirectory(${RAYLIB_DIR})
 
-# Set your project source files
+# Set project source files
 file(GLOB SOURCES "src/*.cpp" "src/*.h")
 
 add_executable(${PROJECT_NAME} ${SOURCES})
