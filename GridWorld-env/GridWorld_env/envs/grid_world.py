@@ -5,7 +5,7 @@ from gymnasium import spaces
 import numpy as np
 import matplotlib.pyplot as plt
 import torch
-MAX_TIMESTEP = 500
+MAX_TIMESTEP = 700
 
 
 class GridWorldEnv(gym.Env): 
@@ -159,9 +159,9 @@ class GridWorldEnv(gym.Env):
                 else:
                     if self.building_zone[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]] == self.target[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]]:
                         if self.timestep_elapsed > MAX_TIMESTEP:
-                            return self.get_obs(), 0.5, False, True, {}
+                            return self.get_obs(), 1, False, True, {}
                         else:
-                            return self.get_obs(), 0.5, False, False, {}
+                            return self.get_obs(), 1, False, False, {}
                     else:
                         if self.timestep_elapsed > MAX_TIMESTEP:
                             return self.get_obs(), -1, False, True, {}
