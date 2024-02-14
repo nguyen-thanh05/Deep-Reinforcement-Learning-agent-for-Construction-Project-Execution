@@ -81,7 +81,7 @@ void GridWorld::DrawPlanes() const {
 
 }
 
-bool GridWorld::AddBlock(uint32_t x, uint32_t y, uint32_t z, int blockType) {
+bool GridWorld::AddBlock(int x, int y, int z, int blockType) {
     if (x >= h || y >= w || z >= d || grid[x][y][z] != 0 || !QueryPlacement(x, y, z))
         return false;
 
@@ -95,10 +95,10 @@ void GridWorld::Move(Action direction) {
             agentPos.x = std::min(w - 1, agentPos.x + 1);
             break;
         case Action::LEFT:
-            agentPos.x = std::max(0U, agentPos.x - 1);
+            agentPos.x = std::max(0, agentPos.x - 1);
             break;
         case Action::DOWN:
-            agentPos.y = std::max(0U, agentPos.y - 1);
+            agentPos.y = std::max(0, agentPos.y - 1);
             break;
         case Action::UP:
             agentPos.y = std::min(h - 1, agentPos.y + 1);
@@ -107,14 +107,14 @@ void GridWorld::Move(Action direction) {
             agentPos.z = std::min(d - 1, agentPos.z + 1);
             break;
         case Action::FORWARD:
-            agentPos.z = std::max(0U, agentPos.z - 1);
+            agentPos.z = std::max(0, agentPos.z - 1);
             break;
         default:
             break;
     }
 }
 
-bool GridWorld::QueryPlacement(uint32_t x, uint32_t y, uint32_t z) const {
+bool GridWorld::QueryPlacement(int x, int y, int z) const {
     if (y == 0) return true;
     if ( (x > 0 && grid[x-1][y][z]) ||
         (x < h-1 && grid[x+1][y][z]) ) return true;
@@ -150,6 +150,6 @@ void GridWorld::DrawBlocks() const {
                   spacing, spacing, spacing, RED);
 }
 
-void GridWorld::RemoveBlock(uint32_t x, uint32_t y, uint32_t z) {
+void GridWorld::RemoveBlock(int x, int y, int z) {
     grid[x][y][z] = 0;
 }

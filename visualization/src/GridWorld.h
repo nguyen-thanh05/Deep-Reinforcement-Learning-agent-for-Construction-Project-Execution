@@ -10,7 +10,7 @@
 
 namespace GWEnv {
     struct Coordinates {
-        uint32_t x, y, z;
+        int x, y, z;
     };
 
     class GridWorld {
@@ -41,20 +41,20 @@ namespace GWEnv {
 
         void DrawPlanes() const;
 
-        bool AddBlock(uint32_t x, uint32_t y, uint32_t z, int blockType);
+        bool AddBlock(int x, int y, int z, int blockType);
 
-        void RemoveBlock(uint32_t x, uint32_t y, uint32_t z);
+        void RemoveBlock(int x, int y, int z);
 
         void Move(Action direction);
 
-        bool QueryPlacement(uint32_t x, uint32_t y, uint32_t z) const;
+        bool QueryPlacement(int x, int y, int z) const;
 
         std::unique_ptr<IEnvStep> agent;
         Coordinates agentPos = {0, 0, 0};
         Camera camera = {0};
 
         // Dimensions of grid
-        uint32_t w, h, d;
+        int w, h, d;
         vec<vec<vec<int>>> grid;
         float spacing = 1.0f;
     };
