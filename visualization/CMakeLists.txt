@@ -15,6 +15,6 @@ file(GLOB SOURCES "src/*.cpp" "src/*.h")
 add_executable(${PROJECT_NAME} ${SOURCES})
 
 target_link_libraries(${PROJECT_NAME} raylib)
-set_target_properties(${PROJECT_NAME} PROPERTIES CXX_STANDARD 11)
+set_target_properties(${PROJECT_NAME} PROPERTIES CXX_STANDARD 17)
 
 target_include_directories(${PROJECT_NAME} PRIVATE ${RAYLIB_DIR}/src)
