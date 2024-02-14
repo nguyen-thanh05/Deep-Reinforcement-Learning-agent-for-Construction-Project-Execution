@@ -1,4 +1,4 @@
-[submodule "raylib-demo/raylib"]
-	path = raylib-demo/raylib
+[submodule "visualization/raylib"]
+	path = visualization/raylib
 	url = https://github.com/raysan5/raylib.git
 	ignore = dirty
