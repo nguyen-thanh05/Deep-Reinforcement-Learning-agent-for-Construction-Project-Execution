@@ -1,4 +1,5 @@
 from math import ceil
+from os import dup
 from turtle import onclick
 import gymnasium as gym
 from gymnasium import spaces
@@ -131,27 +132,33 @@ class GridWorldEnv(gym.Env):
                     supporting_neighbour = True
                     break
             
+            duplicate_block = False
             if supporting_neighbour:
                 # If the space is already occupied
                 if self.building_zone[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]] == 1:
-                    supporting_neighbour = False
+                    duplicate_block = True
                 # Place the block
                 self.building_zone[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]] = 1
             else:
+                # If the space is already occupied
+                if self.building_zone[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]] == 1:
+                    duplicate_block = True
                 # Check if block on the ground. No need to check support
                 if self.agent_pos[2] == 0:
                     self.building_zone[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]] = 1
                     supporting_neighbour = True
+                
+                
         
 
         # return observation, reward, terminated, truncated, info
         if move_cmd:
             if self.timestep_elapsed > MAX_TIMESTEP:
-                return self.get_obs(), -0.5, False, True, {}
+                return self.get_obs(), -1, False, True, {}
             else:
-                return self.get_obs(), -0.5, False, False, {}
+                return self.get_obs(), -1, False, False, {}
         elif place_cmd:
-            if supporting_neighbour:
+            if supporting_neighbour and not duplicate_block:
                 difference = self.target - self.building_zone
                 difference = np.isin(difference, 1)
                 if np.any(difference) == False:
@@ -159,19 +166,19 @@ class GridWorldEnv(gym.Env):
                 else:
                     if self.building_zone[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]] == self.target[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]]:
                         if self.timestep_elapsed > MAX_TIMESTEP:
-                            return self.get_obs(), 1, False, True, {}
+                            return self.get_obs(), -0.25, False, True, {}
                         else:
-                            return self.get_obs(), 1, False, False, {}
+                            return self.get_obs(), -0.25, False, False, {}
                     else:
                         if self.timestep_elapsed > MAX_TIMESTEP:
-                            return self.get_obs(), -1, False, True, {}
+                            return self.get_obs(), -1.5, False, True, {}
                         else:
-                            return self.get_obs(), -1, False, False, {}
-            else:
+                            return self.get_obs(), -1.5, False, False, {}
+            elif duplicate_block or not supporting_neighbour:
                 if self.timestep_elapsed > MAX_TIMESTEP:
-                    return self.get_obs(), -2.5, False, True, {}        
+                    return self.get_obs(), -3.5, False, True, {}        
                 else:
-                    return self.get_obs(), -2.5, False, False, {}
+                    return self.get_obs(), -3.5, False, False, {}
  
     
     def render(self):
