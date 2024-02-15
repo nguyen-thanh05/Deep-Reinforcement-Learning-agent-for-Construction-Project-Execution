@@ -23,7 +23,6 @@ class GridWorldEnv(gym.Env):
         
         random_start_pos = np.zeros(3, dtype=int)
         self.agent_pos = [random_start_pos[0], random_start_pos[1], random_start_pos[2]]
-        print(self.record_sequence)
         self.record_sequence = []
         # List of actions
         # 0: forward, 1: backward
@@ -168,9 +167,9 @@ class GridWorldEnv(gym.Env):
                 else:
                     if self.building_zone[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]] == self.target[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]]:
                         if self.timestep_elapsed > MAX_TIMESTEP:
-                            return self.get_obs(), -0.25, False, True, {}
+                            return self.get_obs(), 1, False, True, {}
                         else:
-                            return self.get_obs(), -0.25, False, False, {}
+                            return self.get_obs(), 1, False, False, {}
                     else:
                         if self.timestep_elapsed > MAX_TIMESTEP:
                             return self.get_obs(), -1.5, False, True, {}
