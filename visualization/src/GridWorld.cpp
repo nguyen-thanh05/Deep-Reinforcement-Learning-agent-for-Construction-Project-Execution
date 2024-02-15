@@ -153,3 +153,8 @@ void GridWorld::DrawBlocks() const {
 void GridWorld::RemoveBlock(int x, int y, int z) {
     grid[x][y][z] = 0;
 }
+
+void GridWorld::ResizeGrid(uint32_t _w, uint32_t _h, uint32_t _d) {
+    grid = {_w, vec<vec<int>>(_h, vec<int>(_d, 0))};
+    agentPos = {0, 0, 0};
+}

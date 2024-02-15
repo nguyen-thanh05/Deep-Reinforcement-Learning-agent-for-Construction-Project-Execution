@@ -5,41 +5,50 @@
 #include "raylib.h"
 
 namespace GWEnv {
-    enum class Action {
-        UP, DOWN, LEFT, RIGHT, FORWARD, BACKWARD, PLACE, REMOVE, NONE
-    };
 
-    /*
-     * Interface that describes an agent's behavior
-     */
-    class IEnvStep {
-    public:
-        virtual Action Step() = 0;
+enum class Action {
+    UP, DOWN, LEFT, RIGHT, FORWARD, BACKWARD, PLACE, REMOVE, NONE
+};
 
-        virtual ~IEnvStep() = default;
-    };
+/*
+ * Interface that describes an agent's behavior
+ *
+ * NOTE: The orginal idea was to have two forms of input
+ * (humans placing a block using the gui / taking an action from the replays
+ * of an agent). This interface was supposed to abstract away the Step() method.
+ * But agent replays could be rendered directly in Python with matplotlib
+ * so this could be simplified into GridWorld::Step(). To be decided later
+ */
+class IEnvStep {
+public:
+    virtual Action Step() = 0;
 
-    class InteractiveInput : public IEnvStep {
-    public:
-        InteractiveInput() = default;
+    virtual ~IEnvStep() = default;
+};
 
-        Action Step() override {
-            if (IsCursorHidden()) return Action::NONE;
+/*
+ * Interactive mode where human specifies the input
+ */
+class InteractiveInput : public IEnvStep {
+public:
+    InteractiveInput() = default;
 
-            if (IsKeyPressed(KEY_W)) return Action::FORWARD;
-            if (IsKeyPressed(KEY_S)) return Action::BACKWARD;
-            if (IsKeyPressed(KEY_A)) return Action::LEFT;
-            if (IsKeyPressed(KEY_D)) return Action::RIGHT;
-            if (IsKeyPressed(KEY_E)) return Action::UP;
-            if (IsKeyPressed(KEY_Q)) return Action::DOWN;
+    Action Step() override {
+        if (IsCursorHidden()) return Action::NONE;
 
-            if (IsKeyPressed(KEY_ENTER)) return Action::PLACE;
-            if (IsKeyPressed(KEY_X)) return Action::REMOVE;
+        if (IsKeyPressed(KEY_W)) return Action::FORWARD;
+        if (IsKeyPressed(KEY_S)) return Action::BACKWARD;
+        if (IsKeyPressed(KEY_A)) return Action::LEFT;
+        if (IsKeyPressed(KEY_D)) return Action::RIGHT;
+        if (IsKeyPressed(KEY_E)) return Action::UP;
+        if (IsKeyPressed(KEY_Q)) return Action::DOWN;
 
-            return Action::NONE;
-        }
+        if (IsKeyPressed(KEY_ENTER)) return Action::PLACE;
+        if (IsKeyPressed(KEY_X)) return Action::REMOVE;
 
-    private:
-    };
+        return Action::NONE;
+    }
+};
+
 }
 #endif //GRIDWORLDENV_IENVSTEP_H
