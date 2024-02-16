@@ -1,14 +1,15 @@
-#ifndef GRIDWORLDENV_IENVSTEP_H
-#define GRIDWORLDENV_IENVSTEP_H
+#ifndef GRIDWORLDENV_IAGENTSTEP_H
+#define GRIDWORLDENV_IAGENTSTEP_H
 
-#include <iostream>
 #include "raylib.h"
 
 namespace GWEnv {
 
-enum class Action {
-    UP, DOWN, LEFT, RIGHT, FORWARD, BACKWARD, PLACE, REMOVE, NONE
-};
+namespace {
+    enum class Action {
+        UP, DOWN, LEFT, RIGHT, FORWARD, BACKWARD, PLACE, REMOVE, NONE
+    };
+}
 
 /*
  * Interface that describes an agent's behavior
@@ -19,19 +20,21 @@ enum class Action {
  * But agent replays could be rendered directly in Python with matplotlib
  * so this could be simplified into GridWorld::Step(). To be decided later
  */
-class IEnvStep {
+class IAgentStep {
 public:
     virtual Action Step() = 0;
 
-    virtual ~IEnvStep() = default;
+    virtual ~IAgentStep() = default;
 };
 
 /*
  * Interactive mode where human specifies the input
  */
-class InteractiveInput : public IEnvStep {
+class InteractiveMode : public IAgentStep {
 public:
-    InteractiveInput() = default;
+    InteractiveMode() = default;
+    InteractiveMode(const InteractiveMode&) = delete;
+    InteractiveMode& operator=(const InteractiveMode&) = delete;
 
     Action Step() override {
         if (IsCursorHidden()) return Action::NONE;
@@ -51,4 +54,4 @@ public:
 };
 
 }
-#endif //GRIDWORLDENV_IENVSTEP_H
+#endif //GRIDWORLDENV_IAGENTSTEP_H

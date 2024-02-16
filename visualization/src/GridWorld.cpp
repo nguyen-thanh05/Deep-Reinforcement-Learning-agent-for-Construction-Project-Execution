@@ -1,6 +1,6 @@
 #include "GridWorld.h"
 
-using namespace GWEnv;
+namespace GWEnv{
 
 void GridWorld::Render() {
     if (IsCursorHidden()) UpdateCamera(&camera, CAMERA_FREE);
@@ -78,7 +78,6 @@ void GridWorld::DrawPlanes() const {
     }
 
     rlEnd();
-
 }
 
 bool GridWorld::AddBlock(int x, int y, int z, int blockType) {
@@ -157,4 +156,5 @@ void GridWorld::RemoveBlock(int x, int y, int z) {
 void GridWorld::ResizeGrid(uint32_t _w, uint32_t _h, uint32_t _d) {
     grid = {_w, vec<vec<int>>(_h, vec<int>(_d, 0))};
     agentPos = {0, 0, 0};
+}
 }
