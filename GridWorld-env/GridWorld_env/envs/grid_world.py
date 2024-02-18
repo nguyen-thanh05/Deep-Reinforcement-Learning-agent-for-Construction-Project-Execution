@@ -84,8 +84,7 @@ class GridWorldEnv(gym.Env):
 
     def step(self, action):
         self.timestep_elapsed += 1
-        move_cmd = False
-        place_cmd = False
+
         # List of actions
         # 0: forward, 1: backward
         # 2: left, 3: right
@@ -134,21 +133,27 @@ class GridWorldEnv(gym.Env):
                     supporting_neighbour = True
                     break
 
-            duplicate_block = False
-            if supporting_neighbour:
-                # If the space is already occupied
-                if self.building_zone[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]] == 1:
-                    duplicate_block = True
-                # Place the block
+            # TODO: check if the replaced code is actually correct lmao
+            # duplicate_block = False
+            # if supporting_neighbour:
+            #     # If the space is already occupied
+            #     if self.building_zone[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]] == 1:
+            #         duplicate_block = True
+            #     # Place the block
+            #     self.building_zone[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]] = 1
+            # else:
+            #     # If the space is already occupied
+            #     if self.building_zone[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]] == 1:
+            #         duplicate_block = True
+            #     # Check if block on the ground. No need to check support
+            #     if self.agent_pos[2] == 0:
+            #         self.building_zone[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]] = 1
+            #         supporting_neighbour = True
+
+            # If the space is already occupied
+            duplicate_block = self.building_zone[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]] == 1
+            if supporting_neighbour := (supporting_neighbour or self.agent_pos[2] == 0) is True:
                 self.building_zone[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]] = 1
-            else:
-                # If the space is already occupied
-                if self.building_zone[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]] == 1:
-                    duplicate_block = True
-                # Check if block on the ground. No need to check support
-                if self.agent_pos[2] == 0:
-                    self.building_zone[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]] = 1
-                    supporting_neighbour = True
 
         # return observation, reward, terminated, truncated, info
         if action < 6:
@@ -165,15 +170,9 @@ class GridWorldEnv(gym.Env):
                     return self.get_obs(), 0, True, False, {}
                 else:
                     if self.building_zone[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]] == self.target[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]]:
-                        if self.timestep_elapsed > MAX_TIMESTEP:
-                            return self.get_obs(), 1, False, True, {}
-                        else:
-                            return self.get_obs(), 1, False, False, {}
+                        return self.get_obs(), 1, False, self.timestep_elapsed > MAX_TIMESTEP, {}
                     else:
-                        if self.timestep_elapsed > MAX_TIMESTEP:
-                            return self.get_obs(), -1.5, False, True, {}
-                        else:
-                            return self.get_obs(), -1.5, False, False, {}
+                        return self.get_obs(), -1.5, False, self.timestep_elapsed > MAX_TIMESTEP, {}
             elif duplicate_block or not supporting_neighbour:
                 return self.get_obs(), -3.5, False, self.timestep_elapsed > MAX_TIMESTEP, {}
 
