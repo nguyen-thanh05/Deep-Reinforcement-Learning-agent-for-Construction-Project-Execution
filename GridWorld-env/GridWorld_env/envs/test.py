@@ -100,13 +100,12 @@ def test_load_dict_performance():
         policy_net_state_dict = policy_net.state_dict()
         for key in policy_net_state_dict:
             target_net_state_dict[key] = policy_net_state_dict[key]*TAU + target_net_state_dict[key]*(1-TAU)
-        # Pretty sure we don't have to load_state_dict bc target_net_state_dict is already
-        # a reference to the actual dict.
-        # TODO: Actually test this out
+        # comment the line below out to measure time difference
         target_net.load_state_dict(target_net_state_dict)
     end = time.time()
     print(end - start)
 
 
 if __name__ == "__main__":
-    test_load_dict_performance()
+    # test_load_dict_performance()
+    test_env_behavior()
