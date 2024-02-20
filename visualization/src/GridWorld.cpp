@@ -13,7 +13,12 @@ void GridWorld::Render() {
         if (IsCursorHidden()) EnableCursor();
         else DisableCursor();
     }
-    Action action = agent->Step();
+    std::string s{"../../Hello"};
+    if (IsKeyPressed(KEY_P)) {
+        std::cout << "P pressed" << std::endl;
+        SaveStructure(s);
+    }
+    Action action = Step();
     switch (action) {
         case Action::NONE: break;
         case Action::PLACE:
@@ -135,10 +140,13 @@ void GridWorld::DrawBlocks() const {
         for (int j = 0; j < h; j++) {
             for (int k = 0; k < d; k++) {
                 if (grid[i][j][k]) {
-                    DrawCube({static_cast<float>(i) * spacing + 0.5f,
-                              static_cast<float>(j) * spacing + 0.5f,
-                              static_cast<float>(k) * spacing + 0.5f},
+                    float posX = static_cast<float>(i) * spacing + 0.5f;
+                    float posY = static_cast<float>(j) * spacing + 0.5f;
+                    float posZ = static_cast<float>(k) * spacing + 0.5f;
+
+                    DrawCube({posX, posY, posZ},
                              spacing, spacing, spacing, BLUE);
+                    DrawCubeWires({posX, posY, posZ}, spacing, spacing, spacing, RED);
                 }
             }
         }
@@ -148,7 +156,7 @@ void GridWorld::DrawBlocks() const {
     DrawCubeWires({static_cast<float>(agentPos.x) * spacing + 0.5f,
                    static_cast<float>(agentPos.y) * spacing + 0.5f,
                    static_cast<float>(agentPos.z) * spacing + 0.5f},
-                  spacing, spacing, spacing, RED);
+                  spacing, spacing, spacing, PURPLE);
 }
 
 void GridWorld::RemoveBlock(int x, int y, int z) {
@@ -159,5 +167,41 @@ void GridWorld::ResizeGrid(uint32_t _w, uint32_t _h, uint32_t _d) {
     grid = {_w, vec<vec<int>>(_h, vec<int>(_d, 0))};
     agentPos = {0, 0, 0};
 }
+
+void GridWorld::SaveStructure(std::string& fileName) {
+    //create flat array
+    std::ofstream myfile;
+
+    myfile.open(fileName,std::fstream::out);
+
+    for (int i=0; i < w; i++) {
+        for (int j=0; j < d; j++) {
+            for (int k=0; k < h; k++) {
+                myfile << grid[i][j][k] << " ";
+            }
+            myfile << std::endl;
+        }
+        myfile << std::endl;
+    }
+    myfile << std::endl;
+    myfile.close();
+}
+
+    Action GridWorld::Step() {
+        if (IsCursorHidden()) return Action::NONE;
+
+        if (IsKeyPressed(KEY_W)) return Action::FORWARD;
+        if (IsKeyPressed(KEY_S)) return Action::BACKWARD;
+        if (IsKeyPressed(KEY_A)) return Action::LEFT;
+        if (IsKeyPressed(KEY_D)) return Action::RIGHT;
+        if (IsKeyPressed(KEY_E)) return Action::UP;
+        if (IsKeyPressed(KEY_Q)) return Action::DOWN;
+
+        if (IsKeyPressed(KEY_ENTER)) return Action::PLACE;
+        if (IsKeyPressed(KEY_X)) return Action::REMOVE;
+
+        return Action::NONE;
+    }
+
 }
 

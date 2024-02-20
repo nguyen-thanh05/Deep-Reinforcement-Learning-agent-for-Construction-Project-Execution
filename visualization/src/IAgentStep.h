@@ -3,7 +3,7 @@
 
 #include "raylib.h"
 
-namespace GWEnv {
+namespace GWEnv_Deprecated {
 
 namespace {
     enum class Action {

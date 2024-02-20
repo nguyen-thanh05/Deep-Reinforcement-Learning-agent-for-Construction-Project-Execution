@@ -8,6 +8,11 @@
 #include <vector>
 
 namespace GWEnv {
+namespace {
+    enum class Action {
+        UP, DOWN, LEFT, RIGHT, FORWARD, BACKWARD, PLACE, REMOVE, NONE
+    };
+}
 
 // TODO: We're only using this struct once. Could use a tuple or something else instead
 struct Coordinates {
@@ -18,12 +23,10 @@ class GridWorld {
 template<class T> using vec = std::vector<T>;
 
 public:
-    GridWorld(int _w, int _h, int _d, std::unique_ptr<IAgentStep> _agent)
+    GridWorld(int _w, int _h, int _d)
             : w(_w), h(_h), d(_d),
               grid(w, vec<vec<int>>(h, vec<int>(d, 0)))
     {
-        agent = std::move(_agent);
-
         camera.position =  {6.5f, 8.5f, 8.5f};       // Camera position
         camera.target = {0.0f, 0.0f, 0.0f};         // Camera looking at point
         camera.up = {0.0f, 1.0f, 0.0f};             // Camera up vector (rotation towards target)
@@ -53,6 +56,10 @@ private:
 
     void Move(Action direction);
 
+    void SaveStructure(std::string& file_name);
+
+    Action Step();
+
     // Whether a block could be placed at coordinates. See Coordinates struct comment
     [[nodiscard]] bool QueryPlacement(int x, int y, int z) const;
 
@@ -60,7 +67,6 @@ private:
     // TODO: implement user input. See raygui.h
     void ResizeGrid(uint32_t _w, uint32_t _h, uint32_t _d);
 
-    std::unique_ptr<IAgentStep> agent;
     Coordinates agentPos = {0, 0, 0};
     Camera camera = {0};
 
