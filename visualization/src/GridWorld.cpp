@@ -1,5 +1,6 @@
 #include <fstream>
 #include <iostream>
+#include <thread>
 #include "GridWorld.h"
 
 namespace GWEnv{
@@ -12,11 +13,6 @@ void GridWorld::Render() {
     {
         if (IsCursorHidden()) EnableCursor();
         else DisableCursor();
-    }
-    std::string s{"../../Hello"};
-    if (IsKeyPressed(KEY_P)) {
-        std::cout << "P pressed" << std::endl;
-        SaveStructure(s);
     }
     Action action = Step();
     switch (action) {
@@ -187,21 +183,36 @@ void GridWorld::SaveStructure(std::string& fileName) {
     myfile.close();
 }
 
-    Action GridWorld::Step() {
-        if (IsCursorHidden()) return Action::NONE;
+Action GridWorld::Step() {
+    static bool enterDelayed = false;
 
-        if (IsKeyPressed(KEY_W)) return Action::FORWARD;
-        if (IsKeyPressed(KEY_S)) return Action::BACKWARD;
-        if (IsKeyPressed(KEY_A)) return Action::LEFT;
-        if (IsKeyPressed(KEY_D)) return Action::RIGHT;
-        if (IsKeyPressed(KEY_E)) return Action::UP;
-        if (IsKeyPressed(KEY_Q)) return Action::DOWN;
-
-        if (IsKeyPressed(KEY_ENTER)) return Action::PLACE;
-        if (IsKeyPressed(KEY_X)) return Action::REMOVE;
-
+    if (IsKeyPressed(KEY_ENTER)) {
+        if (enterDelayed) return Action::NONE;
+        enterDelayed = true;
+        std::thread writeThread([&, this](){
+            SaveStructure(outputFile);
+        });
+        writeThread.detach();
         return Action::NONE;
     }
+
+    bool prevDelayedStatus = enterDelayed;
+    enterDelayed = false;
+    if (IsCursorHidden()) return Action::NONE;
+
+    if (IsKeyPressed(KEY_W)) return Action::FORWARD;
+    if (IsKeyPressed(KEY_S)) return Action::BACKWARD;
+    if (IsKeyPressed(KEY_A)) return Action::LEFT;
+    if (IsKeyPressed(KEY_D)) return Action::RIGHT;
+    if (IsKeyPressed(KEY_E)) return Action::UP;
+    if (IsKeyPressed(KEY_Q)) return Action::DOWN;
+
+    if (IsKeyPressed(KEY_SPACE)) return Action::PLACE;
+    if (IsKeyPressed(KEY_X)) return Action::REMOVE;
+
+    enterDelayed = prevDelayedStatus;
+    return Action::NONE;
+}
 
 }
 

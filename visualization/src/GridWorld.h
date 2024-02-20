@@ -6,6 +6,7 @@
 #include "rlgl.h"
 #include <memory>
 #include <vector>
+#include <string>
 
 namespace GWEnv {
 namespace {
@@ -23,10 +24,11 @@ class GridWorld {
 template<class T> using vec = std::vector<T>;
 
 public:
-    GridWorld(int _w, int _h, int _d)
+    GridWorld(int _w, int _h, int _d, std::string& outputPath)
             : w(_w), h(_h), d(_d),
               grid(w, vec<vec<int>>(h, vec<int>(d, 0)))
     {
+        outputFile = std::move(outputPath);
         camera.position =  {6.5f, 8.5f, 8.5f};       // Camera position
         camera.target = {0.0f, 0.0f, 0.0f};         // Camera looking at point
         camera.up = {0.0f, 1.0f, 0.0f};             // Camera up vector (rotation towards target)
@@ -74,6 +76,7 @@ private:
     int w, h, d;
     vec<vec<vec<int>>> grid;
     float spacing = 1.0f;
+    std::string outputFile;
 };
 
 }
