@@ -184,6 +184,7 @@ void GridWorld::SaveStructure(std::string& fileName) {
 }
 
 Action GridWorld::Step() {
+    // Do not allow save file if nothing changes
     static bool enterDelayed = false;
 
     if (IsKeyPressed(KEY_ENTER)) {
@@ -196,6 +197,7 @@ Action GridWorld::Step() {
         return Action::NONE;
     }
 
+    // A little hack to avoid setting enterDelayed = true in every if statement
     bool prevDelayedStatus = enterDelayed;
     enterDelayed = false;
     if (IsCursorHidden()) return Action::NONE;

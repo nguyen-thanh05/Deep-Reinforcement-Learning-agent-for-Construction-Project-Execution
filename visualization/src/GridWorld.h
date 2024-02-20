@@ -4,7 +4,6 @@
 #include "IAgentStep.h"
 #include "raylib.h"
 #include "rlgl.h"
-#include <memory>
 #include <vector>
 #include <string>
 
