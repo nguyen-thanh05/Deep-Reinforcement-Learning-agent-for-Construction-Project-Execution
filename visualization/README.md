@@ -18,5 +18,5 @@ GridWorldEnv.sln
 ```
 
 ## WIP
-* Add input form for grid resizing. See `raygui.h`.
+* Add input form for grid resizing (or just take the dimension size by command line for simplicity). See `raygui.h`. 
 * Save the structure into storage.
