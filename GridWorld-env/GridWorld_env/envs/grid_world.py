@@ -154,7 +154,7 @@ class GridWorldEnv(gym.Env):
                     else:
                         return self.get_obs(), -1.5, False, self.timestep_elapsed > MAX_TIMESTEP, {}
             elif duplicate_block or not supporting_neighbour:
-                return self.get_obs(), -3.5, False, self.timestep_el > MAX_TIMESTEP, {}
+                return self.get_obs(), -3.5, False, self.timestep_elapsed > MAX_TIMESTEP, {}
 
     def render(self):
         agent_pos_grid = np.zeros((self.dimension_size, self.dimension_size, self.dimension_size), dtype=int)
