@@ -1,3 +1,5 @@
+#include <fstream>
+#include <iostream>
 #include "GridWorld.h"
 
 namespace GWEnv{
@@ -158,3 +160,4 @@ void GridWorld::ResizeGrid(uint32_t _w, uint32_t _h, uint32_t _d) {
     agentPos = {0, 0, 0};
 }
 }
+
