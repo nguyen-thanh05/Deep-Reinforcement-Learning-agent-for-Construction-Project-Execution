@@ -4,8 +4,12 @@
 #include "IAgentStep.h"
 #include "raylib.h"
 #include "rlgl.h"
+#include <utility>
 #include <vector>
 #include <string>
+#include <filesystem>
+
+namespace fs = std::filesystem;
 
 namespace GWEnv {
 namespace {
@@ -23,12 +27,10 @@ class GridWorld {
 template<class T> using vec = std::vector<T>;
 
 public:
-    GridWorld(int _w, int _h, int _d, std::string& path, bool save)
-            : w(_w), h(_h), d(_d),
+    GridWorld(int _w, int _h, int _d, std::string path, bool save)
+            : w(_w), h(_h), d(_d), filePath(std::move(path)),
               grid(w, vec<vec<int>>(h, vec<int>(d, 0)))
     {
-        filePath = std::move(path);
-
         if (!save) {
             LoadFromFile();
         }

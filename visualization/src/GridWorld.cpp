@@ -239,6 +239,11 @@ Action GridWorld::Step() {
 }
 
 void GridWorld::LoadFromFile() {
+    if (!fs::exists(filePath)) {
+        std::cerr << "File " << filePath << " does not exist" << std::endl;
+        exit(1);
+    }
+
     std::ifstream file(filePath, std::ios_base::binary);
     int x, y, z;
     file.read((char *) &x, sizeof(int));
@@ -246,6 +251,7 @@ void GridWorld::LoadFromFile() {
     file.read((char *) &z, sizeof(int));
     if (x != w || y != h || z != d) ResizeGrid(x, y, z);
 
+    // Could read directly into grid instead of array. Not sure which way is more efficient
     std::unique_ptr<int []> flatArray = std::make_unique<int[]>(x * y * z);
     file.read((char *) flatArray.get(), static_cast<std::streamsize>(x * y * z * sizeof(int)));
     size_t index = 0;

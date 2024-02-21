@@ -3,6 +3,9 @@
 
 #include "raylib.h"
 
+/*
+ * The IAgentStep interface is no longer needed. Leaving this here for now.
+ */
 namespace GWEnv_Deprecated {
 
 namespace {
