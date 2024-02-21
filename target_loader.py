@@ -31,10 +31,10 @@ class TargetLoader:
             self.load_all()
 
         if len(self.targets) == 0:
-            print("No target found", file=sys.stderr)
+            print(f"No target found in {self._path}", file=sys.stderr)
             return
         elif idx >= len(self.targets):
-            print("Index out of range", file=sys.stderr)
+            print(f"Index {idx} out of range", file=sys.stderr)
             return
 
         if idx == -1:
