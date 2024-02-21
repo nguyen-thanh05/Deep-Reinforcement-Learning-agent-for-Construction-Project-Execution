@@ -1,9 +1,3 @@
-// Put this define in whatever header you need to use raygui.h in
-//#ifndef RAYGUI_IMPLEMENTAION
-//    #define RAYGUI_IMPLEMENTATION
-//#endif
-//#include "raygui.h"
-
 #include <iostream>
 #include "raylib.h"
 #include "rlgl.h"
