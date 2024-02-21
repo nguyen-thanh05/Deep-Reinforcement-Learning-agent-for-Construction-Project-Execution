@@ -212,10 +212,8 @@ Action GridWorld::Step() {
     if (IsKeyPressed(KEY_ENTER)) {
         if (enterDelayed) return Action::NONE;
         enterDelayed = true;
-        std::thread writeThread([&, this](){
-            SaveToFile();
-        });
-        writeThread.detach();
+
+        SaveToFile();
         return Action::NONE;
     }
 
