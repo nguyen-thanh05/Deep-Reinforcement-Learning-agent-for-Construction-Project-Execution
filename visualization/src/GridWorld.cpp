@@ -164,11 +164,10 @@ void GridWorld::ResizeGrid(uint32_t _w, uint32_t _h, uint32_t _d) {
     agentPos = {0, 0, 0};
 }
 
-void GridWorld::SaveStructure(std::string& fileName) {
-    //create flat array
+/* Trying out binary format. Sorry Thanh
+void GridWorld::SaveToFile() const {
     std::ofstream myfile;
-
-    myfile.open(fileName,std::fstream::out);
+    myfile.open(filePath, std::fstream::out);
 
     for (int i=0; i < w; i++) {
         for (int j=0; j < d; j++) {
@@ -182,6 +181,29 @@ void GridWorld::SaveStructure(std::string& fileName) {
     myfile << std::endl;
     myfile.close();
 }
+*/
+
+void GridWorld::SaveToFile() const {
+    size_t size = w * d * h + 3;
+    std::unique_ptr<int []> flatArray = std::make_unique<int[]>(size);
+    flatArray[0] = w;
+    flatArray[1] = h;
+    flatArray[2] = d;
+
+    size_t index = 3;
+
+    for (int i=0; i < w; i++) {
+        for (int j=0; j < h; j++) {
+            for (int k=0; k < d; k++) {
+                flatArray[index++] = grid[i][j][k];
+            }
+        }
+    }
+
+    std::ofstream file(filePath, std::ios_base::binary);
+    file.write((char *)flatArray.get(), static_cast<std::streamsize>(size * sizeof(int)));
+    file.close();
+}
 
 Action GridWorld::Step() {
     // Do not allow save file if nothing changes
@@ -191,7 +213,7 @@ Action GridWorld::Step() {
         if (enterDelayed) return Action::NONE;
         enterDelayed = true;
         std::thread writeThread([&, this](){
-            SaveStructure(outputFile);
+            SaveToFile();
         });
         writeThread.detach();
         return Action::NONE;
@@ -214,6 +236,28 @@ Action GridWorld::Step() {
 
     enterDelayed = prevDelayedStatus;
     return Action::NONE;
+}
+
+void GridWorld::LoadFromFile() {
+    std::ifstream file(filePath, std::ios_base::binary);
+    int x, y, z;
+    file.read((char *) &x, sizeof(int));
+    file.read((char *) &y, sizeof(int));
+    file.read((char *) &z, sizeof(int));
+    if (x != w || y != h || z != d) ResizeGrid(x, y, z);
+
+    std::unique_ptr<int []> flatArray = std::make_unique<int[]>(x * y * z);
+    file.read((char *) flatArray.get(), static_cast<std::streamsize>(x * y * z * sizeof(int)));
+    size_t index = 0;
+
+    for (int i=0; i < w; i++) {
+        for (int j=0; j < h; j++) {
+            for (int k=0; k < d; k++) {
+                grid[i][j][k] = flatArray[index++];
+            }
+        }
+    }
+    file.close();
 }
 
 }
