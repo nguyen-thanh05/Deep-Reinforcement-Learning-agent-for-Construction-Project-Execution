@@ -1,7 +1,7 @@
 # Visualization interface with raylib
 ____________________________________________________________
 ## Building
-This project requires CMake, make and a C++ compiler (duh :))). Should work on Unix and Windows(?)
+This project requires CMake, a build system like make/Ninja and a C++ compiler (duh :))). Should work on Unix and Windows(?)
 ```bash
 mkdir visualization/build
 cd visualization/build
@@ -18,5 +18,6 @@ GridWorldEnv.sln
 ```
 
 ## WIP
-* Add input form for grid resizing (or just take the dimension size by command line for simplicity). See `raygui.h`. 
-* Save the structure into storage.
+* ~~Add input form for grid resizing (or just take the dimension size by command line for simplicity). See `raygui.h`.~~ 
+* ~~Save the structure into storage.~~
+* Done?
