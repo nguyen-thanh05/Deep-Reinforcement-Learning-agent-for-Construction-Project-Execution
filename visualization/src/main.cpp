@@ -21,7 +21,7 @@ int main(int argc, char* argv[])
     if (operation != "s" && operation != "l") PrintError();
     bool save = operation == "s";
 
-    fs::path modelsPath = fs::current_path().parent_path().parent_path() / "models";
+    fs::path modelsPath = fs::current_path().parent_path().parent_path() / "targets";
 
     // Check if the directory exists
     if (!fs::exists(modelsPath)) {
