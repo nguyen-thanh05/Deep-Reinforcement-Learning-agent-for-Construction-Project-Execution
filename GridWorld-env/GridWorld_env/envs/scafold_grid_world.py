@@ -208,7 +208,11 @@ class ScaffoldGridWorldEnv(gym.Env):
                 return True
             return False
         if (action == self.action_enum.DOWN):
+            # case: scafold before and after
             if (self._isInScaffoldingDomain(prev_pos) and self._isInScaffoldingDomain(new_pos)):
+                return True
+            # case: we on top of scafold and there is scafold below
+            if (not self._isInScaffoldingDomain(prev_pos) and self._isInScaffoldingDomain(new_pos)):
                 return True
             return False
         # case: handle climbing down and up a block
@@ -353,7 +357,23 @@ def testMove(env, agent_id):
         action = i
         env.step((action, agent_id))
         env.render()
-
+def testScafold(env, agent_id):
+    env.render()
+    # move forward
+    env.step((0, agent_id))
+    env.render()
+    # place scaffold
+    env.step((6, agent_id))
+    env.render()
+    # move up
+    env.step((4, agent_id))
+    env.render()
+    # move down 
+    env.step((5, agent_id))
+    env.render()
+    # remove scafold    
+    env.step((7, agent_id))
+    env.render()
 
     return
 if __name__ == "__main__":
@@ -365,7 +385,8 @@ if __name__ == "__main__":
     env = ScaffoldGridWorldEnv(4, 1)
 
     # test move
-    testMove(env, 0)
+    #testMove(env, 0)
+    testScafold(env, 0)
     #env.step(0)
     #env.step(6)
     #env.step(4)
