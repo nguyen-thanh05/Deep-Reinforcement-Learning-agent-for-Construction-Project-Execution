@@ -11,6 +11,24 @@ MAX_TIMESTEP = 500
 
 #import Lock
 from threading import Lock
+# import enum
+from enum import Enum
+
+class Action:
+    FORWARD = 0
+    BACKWARD = 1
+    LEFT = 2
+    RIGHT = 3
+    UP = 4
+    DOWN = 5
+    PLACE_SCAFOLD = 6
+    REMOVE_SCAFOLD = 7
+    PLACE_FORWARD = 8
+    PLACE_BACKWARD = 9
+    PLACE_LEFT = 10
+    PLACE_RIGHT = 11
+
+
 class ScaffoldGridWorldEnv(gym.Env): 
     """
         3 TUPLE element state
@@ -21,8 +39,8 @@ class ScaffoldGridWorldEnv(gym.Env):
         block description:
         0: empty
         -1: block
-        1: agents/ or should 
         -2: scaffold
+        1: agents/ or should 
 
         ACTION:
         0: forward, 1: backward, 2: left, 3: right                         [move]
@@ -40,6 +58,7 @@ class ScaffoldGridWorldEnv(gym.Env):
 
     """
     def __init__(self, dimension_size, num_agents=1):
+        self.action_enum = Action
         self.observation_space = spaces.Box(low=0, high=255, shape=(64, 64, 3), dtype=np.uint8)
         self.dimension_size = dimension_size
         self.timestep_elapsed = 0
@@ -125,114 +144,152 @@ class ScaffoldGridWorldEnv(gym.Env):
         for p in points:
             self.target[p[0], p[1], p[2]] = -1  # -1 is block
 
+    def _tryMove(self, action, agent_id):
+        if (action in [0, 1, 2, 3]):
+            new_pos = self.AgentsPos[agent_id].copy()
+            if (action == 0):
+                new_pos[0] += 1
+            elif (action == 1):
+                new_pos[0] -= 1
+            elif (action == 2):
+                new_pos[1] -= 1
+            elif (action == 3):
+                new_pos[1] += 1
+            elif (action == 4):
+                new_pos[2] += 1
+            elif (action == 5):
+                new_pos[2] -= 1
+            return new_pos
+
+        return
+
+    def _isInScaffoldingDomain(self, pos):
+        if (self.building_zone[pos[0], pos[1], pos[2]] == -2):
+            return True
+        return False 
+    def _isInBlock(self, pos):
+        if (self.building_zone[pos[0], pos[1], pos[2]] == -1):
+            return True
+        return False
+    # position is not in any block or scaffolding
+    def _isInNothing(self, pos):
+        if (self.building_zone[pos[0], pos[1], pos[2]] == 0):
+            return True
+        return False
+    # there is an agent in the position 
+    def _thereIsAgent(self, pos):
+        if (self.building_zone[pos[0], pos[1], pos[2]] == 1):
+            return True
+        return False
+
+    """
+    check if NWSE is move is valid
+    prev_pos -> action -> new_pos 
+    """    
+    def _isValidMove(self, new_pos, action , prev_pos):
+        if (new_pos[0] < 0 or new_pos[0] >= self.dimension_size or new_pos[1] < 0 or new_pos[1] >= self.dimension_size or new_pos[2] < 0 or new_pos[2] >= self.dimension_size):
+            return False
+        # case: it moved out of the block
+        if (self.building_zone[new_pos[0], new_pos[1], new_pos[2] - 1] == 0):  # case: there is no block below
+            return False
+        if (self.building_zone[new_pos[0], new_pos[1], new_pos[2]] == -1):  # there is a block here
+            return False
+        # check if  
+        if (action == self.action_enum.UP):
+            # if prev_pos is in scaffolding domain and new_pos is not in block(so new pos is air or another scaffolding)
+            if (self._isInScaffoldingDomain(prev_pos) and not self._isInBlock(new_pos)):  # if agent was in the scaffolding domain
+                return True
+            return False
+        if (action == self.action_enum.DOWN):
+            if (self._isInScaffoldingDomain(prev_pos) and self._isInScaffoldingDomain(new_pos)):
+                return True
+            return False
+        # case: handle climbing down and up a block
+        return True
+    def _isValidPlace(self, action, current_pos, agent_id):
+        if (action == self.action_enum.PLACE_SCAFOLD):
+            if (not self._isInScaffoldingDomain(current_pos) and not self._isInBlock(current_pos)):  # case: there is not
+                return True 
+
+        # case: place block
+            
+        
+        return False
     def step(self, action_tuple):
         if (len(action_tuple) != 2):
             raise ValueError("action_tuple should be a tuple of 2 elements")
 
         action = action_tuple[0]
         agent_id = action_tuple[1]
+        self.mutex.acquire()  # get lock to enter critical section
         self.timestep_elapsed += 1
-        move_cmd = False
-        place_cmd = False
-        # List of actions
-        # 0: forward, 1: backward
-        # 2: left, 3: right
-        # 4: up, 5: down
-        # 6: pick
-        if action == 1:
-            # Y - 1
-            if self.agent_pos[1] > 0:
-                self.agent_pos[1] -= 1
-            move_cmd = True
-        elif action == 0:
-            # Y + 1
-            if self.agent_pos[1] < self.dimension_size - 1:
-                self.agent_pos[1] += 1
-            move_cmd = True
-                
-        elif action == 2:
-            # X - 1
-            if self.agent_pos[0] > 0:
-                self.agent_pos[0] -= 1
-            move_cmd = True
-                
-        elif action == 3:
-            # X + 1
-            if self.agent_pos[0] < self.dimension_size - 1:
-                self.agent_pos[0] += 1
-            move_cmd = True
-        
-        elif action == 4:
-            # Z + 1
-            if self.agent_pos[2] < self.dimension_size - 1:
-                self.agent_pos[2] += 1
-            move_cmd = True       
-        elif action == 5:
-            # Z - 1
-            if self.agent_pos[2] > 0:
-                self.agent_pos[2] -= 1
-            move_cmd = True
-        
-        elif action == 6: # Place a block
-            place_cmd = True
-            # Find all 6 neighbouring directions
-            neighbour_direction = [
-                [self.agent_pos[0] + delta_x, self.agent_pos[1] + delta_y, self.agent_pos[2] + delta_z]
-                for delta_x, delta_y, delta_z in [[-1, 0, 0], [1, 0, 0], [0, -1, 0], [0, 1, 0], [0, 0, -1], [0, 0, 1]]
-            ]
-            
-            for neighbour in neighbour_direction:
-                if neighbour[0] < 0 or neighbour[0] >= self.dimension_size or neighbour[1] < 0 or neighbour[1] >= self.dimension_size or neighbour[2] < 0 or neighbour[2] >= self.dimension_size:
-                    neighbour_direction.remove(neighbour)
-            
-            # Find if there is any supporting neighbour
-            supporting_neighbour = False
-            for neighbour in neighbour_direction:
-                if self.building_zone[neighbour[0], neighbour[1], neighbour[2]] == 1:
-                    supporting_neighbour = True
-                    break
-            
-            if supporting_neighbour:
-                # If the space is already occupied
-                if self.building_zone[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]] == 1:
-                    supporting_neighbour = False
-                # Place the block
-                self.building_zone[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]] = 1
-            else:
-                # Check if block on the ground. No need to check support
-                if self.agent_pos[2] == 0:
-                    self.building_zone[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]] = 1
-                    supporting_neighbour = True
-        
+        """
+        ACTION:
+        0: forward, 1: backward, 2: left, 3: right                         [move]
+        4: up, 5: down                                                     [move but only in the scaffolding domain]
+        6: place scaffold at current position                              [place block]
+        7: remove scaffold at current position                             [remove block]
+        8-11: place block at the 4 adjacent position of the agent          [place block]
+        """
+        current_pos = self.AgentsPos[agent_id]
+        new_pos = self._tryMove(action, agent_id)
 
-        # return observation, reward, terminated, truncated, info
-        if move_cmd:
-            if self.timestep_elapsed > MAX_TIMESTEP:
-                return self.get_obs(), -0.5, False, True, {}
-            else:
-                return self.get_obs(), -0.5, False, False, {}
-        elif place_cmd:
-            if supporting_neighbour:
-                difference = self.target - self.building_zone
-                difference = np.isin(difference, 1)
-                if np.any(difference) == False:
-                    return self.get_obs(), 0, True, False, {}
-                else:
-                    if self.building_zone[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]] == self.target[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]]:
-                        if self.timestep_elapsed > MAX_TIMESTEP:
-                            return self.get_obs(), 0.5, False, True, {}
-                        else:
-                            return self.get_obs(), 0.5, False, False, {}
-                    else:
-                        if self.timestep_elapsed > MAX_TIMESTEP:
-                            return self.get_obs(), -1, False, True, {}
-                        else:
-                            return self.get_obs(), -1, False, False, {}
-            else:
+        if (action in [0, 1, 2, 3, 4, 5]):  # move action
+            if (self._isValidMove(new_pos, action, current_pos)):
+                self.building_zone[self.AgentsPos[agent_id][0], self.AgentsPos[agent_id][1], self.AgentsPos[agent_id][2]] = 0
+                self.AgentsPos[agent_id] = new_pos
+                self.building_zone[self.AgentsPos[agent_id][0], self.AgentsPos[agent_id][1], self.AgentsPos[agent_id][2]] = 1
+
+                obs = self.get_obs(agent_id)
+                self.mutex.release()
                 if self.timestep_elapsed > MAX_TIMESTEP:
-                    return self.get_obs(), -2.5, False, True, {}        
+                    return self.get_obs(), -0.5, False, True, {}
                 else:
-                    return self.get_obs(), -2.5, False, False, {}
+                    return self.get_obs(), -0.5, False, False, {}
+
+            else:  # case: invalid move, so agent just stay here
+                obs = self.get_obs(agent_id)
+                self.mutex.release()
+                if self.timestep_elapsed > MAX_TIMESTEP:
+                    return obs, -1, False, True, {}
+                else:
+                    return obs, -1, False, False, {}
+        elif (action == self.action_enum.PLACE_SCAFOLD):
+            # agent can only place scaffold if there is nothing in current position
+            if (self._isValidPlace(action, current_pos, agent_id)):
+                self.building_zone[current_pos[0], current_pos[1], current_pos[2]] = -2  # place scaffold block
+                obs = self.get_obs(agent_id)
+                self.mutex.release()
+                if self.timestep_elapsed > MAX_TIMESTEP:
+                    return obs, -0.5, False, True, {}
+                else:
+                    return obs, -0.5, False, False, {}
+            else:  # case: invalid place, so agent just stay here
+                obs = self.get_obs(agent_id)
+                self.mutex.release()
+                if self.timestep_elapsed > MAX_TIMESTEP:
+                    return obs, -1, False, True, {}
+                else:
+                    return obs, -1, False, False, {}
+            pass
+        elif (action == self.action_enum.REMOVE_SCAFOLD):
+            # agent can only remove scaffold if there is a scaffold in current position and there is no scaffold above or agent above
+            if (self._isInScaffoldingDomain(current_pos)
+             and not self._isInScaffoldingDomain([current_pos[0], current_pos[1], current_pos[2] + 1])
+             and not self._thereIsAgent([current_pos[0], current_pos[1], current_pos[2] + 1])):
+
+                self.building_zone[current_pos[0], current_pos[1], current_pos[2]] = 0
+                obs = self.get_obs(agent_id)
+                self.mutex.release()
+                if self.timestep_elapsed > MAX_TIMESTEP:
+                    return obs, -1, False, True, {}
+                else:
+                    return obs, -1, False, False, {}
+        elif (action in [8, 9, 10, 11]):  # place command
+            pass
+
+
+
  
     
 
@@ -278,7 +335,7 @@ if __name__ == "__main__":
     # 4: up, 5: down
     # 6: place block
     env = ScaffoldGridWorldEnv(4, 2)
-    env.render()
+    print(env.action_enum.FORWARD)
     #env.step(0)
     #env.step(6)
     #env.step(4)
