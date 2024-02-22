@@ -65,6 +65,7 @@ class ScaffoldGridWorldEnv(gym.Env):
         self.mutex = Lock()
         self.num_agents = num_agents
 
+
         self.reset()
 
     
@@ -73,6 +74,7 @@ class ScaffoldGridWorldEnv(gym.Env):
         self.mutex.acquire()  # get lock to enter critical section
         self.building_zone = np.zeros((self.dimension_size, self.dimension_size, self.dimension_size), dtype=int)
 
+        self._placeBlockInBuildingZone()  # TODO: REMOVE
         self.AgentsPos = np.zeros((self.num_agents, 3), dtype=int)
 
         
@@ -80,7 +82,7 @@ class ScaffoldGridWorldEnv(gym.Env):
         for i in range(self.num_agents):
             random_start_pos[0] = np.random.randint(0, self.dimension_size)
             random_start_pos[1] = np.random.randint(0, self.dimension_size)
-            random_start_pos[2] = np.random.randint(0, self.dimension_size)
+            random_start_pos[2] = 0
             self.AgentsPos[i] = random_start_pos
             self.building_zone[random_start_pos[0], random_start_pos[1], random_start_pos[2]] = 1  # encode agents position on the building zone
 
@@ -120,6 +122,11 @@ class ScaffoldGridWorldEnv(gym.Env):
     def _get_info(self):
         pass
 
+    def _placeBlockInBuildingZone(self):
+        # place some block in building zone for testing
+        self.building_zone[self.dimension_size // 2, self.dimension_size // 2, 0] = -1
+        return
+
     def _init_target(self):
         self.target = np.zeros((self.dimension_size, self.dimension_size, self.dimension_size), dtype=int)
         
@@ -145,7 +152,7 @@ class ScaffoldGridWorldEnv(gym.Env):
             self.target[p[0], p[1], p[2]] = -1  # -1 is block
 
     def _tryMove(self, action, agent_id):
-        if (action in [0, 1, 2, 3]):
+        if (action in [0, 1, 2, 3, 4, 5]):
             new_pos = self.AgentsPos[agent_id].copy()
             if (action == 0):
                 new_pos[0] += 1
@@ -161,7 +168,7 @@ class ScaffoldGridWorldEnv(gym.Env):
                 new_pos[2] -= 1
             return new_pos
 
-        return
+        return None
 
     def _isInScaffoldingDomain(self, pos):
         if (self.building_zone[pos[0], pos[1], pos[2]] == -2):
@@ -190,7 +197,7 @@ class ScaffoldGridWorldEnv(gym.Env):
         if (new_pos[0] < 0 or new_pos[0] >= self.dimension_size or new_pos[1] < 0 or new_pos[1] >= self.dimension_size or new_pos[2] < 0 or new_pos[2] >= self.dimension_size):
             return False
         # case: it moved out of the block
-        if (self.building_zone[new_pos[0], new_pos[1], new_pos[2] - 1] == 0):  # case: there is no block below
+        if (new_pos[2] > 0 and self.building_zone[new_pos[0], new_pos[1], new_pos[2] - 1] == 0):  # case: there is no block below and we are above the ground
             return False
         if (self.building_zone[new_pos[0], new_pos[1], new_pos[2]] == -1):  # there is a block here
             return False
@@ -237,15 +244,17 @@ class ScaffoldGridWorldEnv(gym.Env):
         if (action in [0, 1, 2, 3, 4, 5]):  # move action
             if (self._isValidMove(new_pos, action, current_pos)):
                 self.building_zone[self.AgentsPos[agent_id][0], self.AgentsPos[agent_id][1], self.AgentsPos[agent_id][2]] = 0
-                self.AgentsPos[agent_id] = new_pos
+                self.AgentsPos[agent_id][0] = new_pos[0]
+                self.AgentsPos[agent_id][1] = new_pos[1]
+                self.AgentsPos[agent_id][2] = new_pos[2]
                 self.building_zone[self.AgentsPos[agent_id][0], self.AgentsPos[agent_id][1], self.AgentsPos[agent_id][2]] = 1
 
                 obs = self.get_obs(agent_id)
                 self.mutex.release()
                 if self.timestep_elapsed > MAX_TIMESTEP:
-                    return self.get_obs(), -0.5, False, True, {}
+                    return self.get_obs(agent_id), -0.5, False, True, {}
                 else:
-                    return self.get_obs(), -0.5, False, False, {}
+                    return self.get_obs(agent_id), -0.5, False, False, {}
 
             else:  # case: invalid move, so agent just stay here
                 obs = self.get_obs(agent_id)
@@ -285,6 +294,13 @@ class ScaffoldGridWorldEnv(gym.Env):
                     return obs, -1, False, True, {}
                 else:
                     return obs, -1, False, False, {}
+            else:  # case: invalid remove, so agent just stay here
+                obs = self.get_obs(agent_id)
+                self.mutex.release()
+                if self.timestep_elapsed > MAX_TIMESTEP:
+                    return obs, -1, False, True, {}
+                else:
+                    return obs, -1, False, False, {}
         elif (action in [8, 9, 10, 11]):  # place command
             pass
 
@@ -302,15 +318,16 @@ class ScaffoldGridWorldEnv(gym.Env):
         # prepare some coordinates
         building_zone_cube = self.building_zone == -1
         agent_position_cube = agent_pos_grid == 1
-
+        scaffold_cube = self.building_zone == -2
 
         fig = plt.figure()
 
-        final_rendering_cube = building_zone_cube | agent_position_cube
+        final_rendering_cube = building_zone_cube | agent_position_cube | scaffold_cube
         # set the colors of each object
         colors = np.empty(final_rendering_cube.shape, dtype=object)
         colors[building_zone_cube] = '#7A88CCC0'
         colors[agent_position_cube] = '#FFD65DC0'
+        colors[scaffold_cube] = 'pink'
         #print(colors)
 
         ax = fig.add_subplot(1, 2, 1, projection='3d')
@@ -328,14 +345,27 @@ class ScaffoldGridWorldEnv(gym.Env):
     def close(self):
         pass
     
+
+
+def testMove(env, agent_id):
+    # move forward
+    for i in range(5):
+        action = i
+        env.step((action, agent_id))
+        env.render()
+
+
+    return
 if __name__ == "__main__":
     # List of actions
     # 0: forward, 1: backward
     # 2: left, 3: right
     # 4: up, 5: down
     # 6: place block
-    env = ScaffoldGridWorldEnv(4, 2)
-    print(env.action_enum.FORWARD)
+    env = ScaffoldGridWorldEnv(4, 1)
+
+    # test move
+    testMove(env, 0)
     #env.step(0)
     #env.step(6)
     #env.step(4)
