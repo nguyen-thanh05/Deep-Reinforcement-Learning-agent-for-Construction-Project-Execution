@@ -84,7 +84,7 @@ class ScaffoldGridWorldEnv(gym.Env):
             random_start_pos[1] = np.random.randint(0, self.dimension_size)
             random_start_pos[2] = 0
             self.AgentsPos[i] = random_start_pos
-            self.building_zone[random_start_pos[0], random_start_pos[1], random_start_pos[2]] = 1  # encode agents position on the building zone
+            #self.building_zone[random_start_pos[0], random_start_pos[1], random_start_pos[2]] = 1  # encode agents position on the building zone
 
         #self.agent_pos = [random_start_pos[0], random_start_pos[1], random_start_pos[2]]
         # List of actions
@@ -247,11 +247,11 @@ class ScaffoldGridWorldEnv(gym.Env):
 
         if (action in [0, 1, 2, 3, 4, 5]):  # move action
             if (self._isValidMove(new_pos, action, current_pos)):
-                self.building_zone[self.AgentsPos[agent_id][0], self.AgentsPos[agent_id][1], self.AgentsPos[agent_id][2]] = 0
+                #self.building_zone[self.AgentsPos[agent_id][0], self.AgentsPos[agent_id][1], self.AgentsPos[agent_id][2]] = 0
                 self.AgentsPos[agent_id][0] = new_pos[0]
                 self.AgentsPos[agent_id][1] = new_pos[1]
                 self.AgentsPos[agent_id][2] = new_pos[2]
-                self.building_zone[self.AgentsPos[agent_id][0], self.AgentsPos[agent_id][1], self.AgentsPos[agent_id][2]] = 1
+                #self.building_zone[self.AgentsPos[agent_id][0], self.AgentsPos[agent_id][1], self.AgentsPos[agent_id][2]] = 1
 
                 obs = self.get_obs(agent_id)
                 self.mutex.release()
