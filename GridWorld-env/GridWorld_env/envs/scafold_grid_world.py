@@ -50,11 +50,13 @@ class ScaffoldGridWorldEnv(gym.Env):
         8-11: place block at the 4 adjacent position of the agent          [place block]
 
 
-        Rule:
-        1. agent can move in 4 direction (N, S, E, W), and 2 direction in the z axis (up, down) agent in scaffolding domain
+        current Rule:
+        1. agent can move in 4 direction (N, S, E, W), and 2 direction in the z axis (up, down) if agent in scaffolding domain
         2. agent cannot move through block
-        3. if agent is moving to a coordinate with a block adjacent to it, it will climb on top of it
-        4. agent can climb down a block if agent is 1 block above the ground, otherwise agent will die
+        4. agent can climb down a block if agent is 1 block above the ground, otherwise agent will die(TODO)
+        5. agent can place scafold block directly where it is standing.
+        6. agent cannot remove scafold block if there is a scafolding block above it or another agent above the scafold block
+        7. agent can climb up and down an adjacent block(TODO)
 
     """
     def __init__(self, dimension_size, num_agents=1):
@@ -210,15 +212,87 @@ class ScaffoldGridWorldEnv(gym.Env):
             return False
         # case: handle climbing down and up a block
         return True
+    """
+    return true if placement is valid
+
+    arg:
+        action: the action to be performed
+        current_pos: the current position of the agent
+        agent_id: the id of the agent
+    
+    """
     def _isValidPlace(self, action, current_pos, agent_id):
         if (action == self.action_enum.PLACE_SCAFOLD):
             if (not self._isInScaffoldingDomain(current_pos) and not self._isInBlock(current_pos)):  # case: there is not
                 return True 
 
         # case: place block
-        return False
+        assert (action in [8, 9, 10, 11])
+        valid = False
+        place_pos = None
+        if action == self.action_enum.PLACE_FORWARD:
+            place_pos = current_pos + [1, 0, 0] 
+        elif action == self.action_enum.PLACE_BACKWARD:
+            place_pos = current_pos + [-1, 0, 0] 
+        elif action == self.action_enum.PLACE_LEFT:
+            place_pos = current_pos + [0, -1, 0]
+        elif action == self.action_enum.PLACE_RIGHT:
+            place_pos = current_pos + [0, 1, 0]
+        else:
+            raise ValueError("Invalid action")
+        if (self._supportingBlockExist(place_pos)):
+            # check if there is no block or agent in the position
+            if (self._isInNothing(place_pos)):
+                valid = True
+        return valid 
     
+    """
+    if there exist supporting neighborblock around currentPos
+
+    arg: 
+       currentPos: 3-tuple (x, y, z), the location we want to place the block
     
+    """ 
+    def _supportingBlockExist(self, currentPos):    
+        neighbour_direction = [  # list of 6 direction around currentPos
+            [currentPos[0] + delta_x, currentPos[1] + delta_y, currentPos[2] + delta_z]
+            for delta_x, delta_y, delta_z in [[-1, 0, 0], [1, 0, 0], [0, -1, 0], [0, 1, 0], [0, 0, -1], [0, 0, 1]]
+        ]
+        
+        for neighbour in neighbour_direction:
+            if neighbour[0] < 0 or neighbour[0] >= self.dimension_size or neighbour[1] < 0 or neighbour[1] >= self.dimension_size or neighbour[2] < 0 or neighbour[2] >= self.dimension_size:
+                neighbour_direction.remove(neighbour)  # remove invalid neighbours
+        
+        # Find if there is any supporting neighbour
+        supporting_neighbour = False
+        for neighbour in neighbour_direction:
+            if self.building_zone[neighbour[0], neighbour[1], neighbour[2]] == -1:
+                supporting_neighbour = True
+                break
+        
+        if supporting_neighbour:
+            # If the space is already occupied by block
+            if self._isInBlock(currentPos) or self._thereIsAgent(currentPos) or self._isInScaffoldingDomain(currentPos):
+                supporting_neighbour = False
+            # Place the block
+            #self.building_zone[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]] = 1
+        else:
+            # Check if block on the ground. No need to check support
+            if self.agent_pos[2] == 0:
+                self.building_zone[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]] = 1
+                supporting_neighbour = True
+        return supporting_neighbour
+    
+    def _isTerminal(self):
+        # check if target is complete, we disregard scaffolding blocks
+        # check if self.target == self.building_zone but disregard scaffolding blocks
+        # TODO: make it more efficient, perhaps use numpy array method
+        for i in range(self.dimension_size):
+            for j in range(self.dimension_size):
+                for k in range(self.dimension_size):
+                    if (self.target[i, j, k] == -1 and self.building_zone[i, j, k] != -1):
+                        return False
+        return True
 
     def step(self, action_tuple):
         if (len(action_tuple) != 2):
@@ -305,11 +379,31 @@ class ScaffoldGridWorldEnv(gym.Env):
             else:
                 return obs, R, Terminated, Truncated, {}
         elif (action in [8, 9, 10, 11]):  # place command
-
-            pass
-
-
-
+            R = -0.5
+            Terminated = False
+            Truncated = False
+            isValid = False
+            if (self._isValidPlace(action, current_pos, agent_id)):
+                place_pos = None
+                if action == self.action_enum.PLACE_FORWARD:
+                    place_pos = current_pos + [1, 0, 0]
+                elif action == self.action_enum.PLACE_BACKWARD:
+                    place_pos = current_pos + [-1, 0, 0]
+                elif action == self.action_enum.PLACE_LEFT:
+                    place_pos = current_pos + [0, -1, 0]
+                elif action == self.action_enum.PLACE_RIGHT:
+                    place_pos = current_pos + [0, 1, 0]
+                else :
+                    raise ValueError("Invalid action")
+                self.building_zone[place_pos[0], place_pos[1], place_pos[2]] = -1
+            else:  # invalid place
+                pass
+            # check if structure is complete
+            if (self._isTerminal()):
+                Terminated = True
+                R = 0
+            else: 
+                pass
  
     
 
