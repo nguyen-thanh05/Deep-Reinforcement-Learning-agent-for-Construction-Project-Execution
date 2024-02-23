@@ -76,7 +76,6 @@ class ScaffoldGridWorldEnv(gym.Env):
         self.mutex.acquire()  # get lock to enter critical section
         self.building_zone = np.zeros((self.dimension_size, self.dimension_size, self.dimension_size), dtype=int)
 
-        self._placeBlockInBuildingZone()  # TODO: REMOVE
         self.AgentsPos = np.zeros((self.num_agents, 3), dtype=int)
 
         
@@ -177,6 +176,7 @@ class ScaffoldGridWorldEnv(gym.Env):
     def _isInNothing(self, pos):
         if (self.building_zone[pos[0], pos[1], pos[2]] == 0):
             return True
+        print("not empty, value was ", self.building_zone[pos[0], pos[1], pos[2]])
         return False
     # there is an agent in the position 
     def _thereIsAgent(self, pos):
@@ -240,6 +240,10 @@ class ScaffoldGridWorldEnv(gym.Env):
             place_pos = current_pos + [0, 1, 0]
         else:
             raise ValueError("Invalid action")
+        
+        # check if place_pos is out of bound
+        if (place_pos[0] < 0 or place_pos[0] >= self.dimension_size or place_pos[1] < 0 or place_pos[1] >= self.dimension_size or place_pos[2] < 0 or place_pos[2] >= self.dimension_size):
+            return False
         if (self._supportingBlockExist(place_pos)):
             # check if there is no block or agent in the position
             if (self._isInNothing(place_pos)):
@@ -270,17 +274,13 @@ class ScaffoldGridWorldEnv(gym.Env):
                 supporting_neighbour = True
                 break
         
-        if supporting_neighbour:
-            # If the space is already occupied by block
-            if self._isInBlock(currentPos) or self._thereIsAgent(currentPos) or self._isInScaffoldingDomain(currentPos):
-                supporting_neighbour = False
-            # Place the block
-            #self.building_zone[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]] = 1
-        else:
-            # Check if block on the ground. No need to check support
-            if self.agent_pos[2] == 0:
-                self.building_zone[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]] = 1
-                supporting_neighbour = True
+        # if the block is already on the ground then it is supporting
+        if currentPos[2] == 0:
+            supporting_neighbour = True
+        
+        # if there is block below then it is supporting
+        if currentPos[2] > 0 and self.building_zone[currentPos[0], currentPos[1], currentPos[2] - 1] == -1:
+            supporting_neighbour = True
         return supporting_neighbour
     
     def _isTerminal(self):
@@ -399,7 +399,7 @@ class ScaffoldGridWorldEnv(gym.Env):
 
                 isValid = True
                 # rightTrack = 1 if agent placed block in the right position
-                rightTrack = self.building_zone[place_pos[0], place_pos[1], place_pos[2]] == place_pos[place_pos[0], place_pos[1], place_pos[2]]
+                rightTrack = self.building_zone[place_pos[0], place_pos[1], place_pos[2]] == self.target[place_pos[0], place_pos[1], place_pos[2]]
                 if rightTrack:
                     R = 0.5
                 else:
@@ -484,6 +484,22 @@ def testScafold(env, agent_id):
     env.step((7, agent_id))
     env.render()
 
+def testPlaceBlock(env, agent_id):
+    env.render()
+    #place forward
+    env.step((8, agent_id))
+    env.render()
+    #place backward
+    env.step((9, agent_id))
+    env.render()
+    #place left
+    env.step((10, agent_id))
+    env.render()
+    #place right
+    env.step((11, agent_id))
+    env.render()
+    return
+
     return
 if __name__ == "__main__":
     # List of actions
@@ -495,7 +511,8 @@ if __name__ == "__main__":
 
     # test move
     #testMove(env, 0)
-    testScafold(env, 0)
+    #testScafold(env, 0)
+    testPlaceBlock(env, 0)
     #env.step(0)
     #env.step(6)
     #env.step(4)
