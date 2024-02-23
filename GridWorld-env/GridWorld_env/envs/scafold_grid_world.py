@@ -395,15 +395,30 @@ class ScaffoldGridWorldEnv(gym.Env):
                     place_pos = current_pos + [0, 1, 0]
                 else :
                     raise ValueError("Invalid action")
-                self.building_zone[place_pos[0], place_pos[1], place_pos[2]] = -1
-            else:  # invalid place
-                pass
+                self.building_zone[place_pos[0], place_pos[1], place_pos[2]] = -1  # place block
+
+                isValid = True
+                # rightTrack = 1 if agent placed block in the right position
+                rightTrack = self.building_zone[place_pos[0], place_pos[1], place_pos[2]] == place_pos[place_pos[0], place_pos[1], place_pos[2]]
+                if rightTrack:
+                    R = 0.5
+                else:
+                    R = -1
+            else:  # invalid placement
+                R = -2.5
+
+            obs = self.get_obs(agent_id)
+            self.mutex.release()
             # check if structure is complete
-            if (self._isTerminal()):
+            if (isValid and self._isTerminal()):  #  only do terminal check if we placed a block to save computation
                 Terminated = True
                 R = 0
-            else: 
-                pass
+            if self.timestep_elapsed > MAX_TIMESTEP:
+                Truncated = True
+                return obs, R, Terminated, Truncated, {}
+            else:
+                return obs, R, Terminated, Truncated, {}
+        return
  
     
 
