@@ -36,7 +36,19 @@ void GridWorld::Render() {
         DrawBlocks();
 
     EndMode3D();
-    DrawFPS(10, 10);
+//    DrawFPS(10, 10);
+
+    DrawRectangle( 10, 10, 240, 130, Fade(SKYBLUE, 0.5f));
+    DrawRectangleLines( 10, 10, 240, 130, BLUE);
+
+    DrawText(IsCursorHidden() ? "Mode: Free camera - right click to switch"
+        : "Mode: Fixed Camera - right click to switch", 20, 20, 10, BLACK);
+    DrawText("WASD: Horizontal move", 40, 40, 10, DARKGRAY);
+    DrawText("QE: Vertical move", 40, 60, 10, DARKGRAY);
+    DrawText("X: Delete block", 40, 80, 10, DARKGRAY);
+    DrawText("SPACE: Place block", 40, 100, 10, DARKGRAY);
+    DrawText("ENTER: Save to file", 40, 120, 10, DARKGRAY);
+
     EndDrawing();
 }
 
