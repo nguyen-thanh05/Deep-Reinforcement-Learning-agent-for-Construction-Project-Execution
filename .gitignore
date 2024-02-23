@@ -2,3 +2,5 @@
 venv
 */build
 .idea
+*/bin 
+*/_deps
