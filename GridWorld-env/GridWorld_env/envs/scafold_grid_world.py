@@ -85,13 +85,6 @@ class ScaffoldGridWorldEnv(gym.Env):
             random_start_pos[2] = 0
             self.AgentsPos[i] = random_start_pos
             #self.building_zone[random_start_pos[0], random_start_pos[1], random_start_pos[2]] = 1  # encode agents position on the building zone
-
-        #self.agent_pos = [random_start_pos[0], random_start_pos[1], random_start_pos[2]]
-        # List of actions
-        # 0: forward, 1: backward
-        # 2: left, 3: right
-        # 4: up, 5: down
-        # 6: pick
         self.action_space = spaces.Discrete(12)   
         self._init_target()
         
@@ -223,9 +216,10 @@ class ScaffoldGridWorldEnv(gym.Env):
                 return True 
 
         # case: place block
-            
-        
         return False
+    
+    
+
     def step(self, action_tuple):
         if (len(action_tuple) != 2):
             raise ValueError("action_tuple should be a tuple of 2 elements")
@@ -246,66 +240,72 @@ class ScaffoldGridWorldEnv(gym.Env):
         new_pos = self._tryMove(action, agent_id)
 
         if (action in [0, 1, 2, 3, 4, 5]):  # move action
+            R = -0.5
+            Terminated = False
+            Truncated = False
+            isValid = False
             if (self._isValidMove(new_pos, action, current_pos)):
                 #self.building_zone[self.AgentsPos[agent_id][0], self.AgentsPos[agent_id][1], self.AgentsPos[agent_id][2]] = 0
                 self.AgentsPos[agent_id][0] = new_pos[0]
                 self.AgentsPos[agent_id][1] = new_pos[1]
                 self.AgentsPos[agent_id][2] = new_pos[2]
                 #self.building_zone[self.AgentsPos[agent_id][0], self.AgentsPos[agent_id][1], self.AgentsPos[agent_id][2]] = 1
-
-                obs = self.get_obs(agent_id)
-                self.mutex.release()
-                if self.timestep_elapsed > MAX_TIMESTEP:
-                    return self.get_obs(agent_id), -0.5, False, True, {}
-                else:
-                    return self.get_obs(agent_id), -0.5, False, False, {}
-
             else:  # case: invalid move, so agent just stay here
-                obs = self.get_obs(agent_id)
-                self.mutex.release()
-                if self.timestep_elapsed > MAX_TIMESTEP:
-                    return obs, -1, False, True, {}
-                else:
-                    return obs, -1, False, False, {}
+                pass
+            obs = self.get_obs(agent_id)
+            self.mutex.release()
+            if not isValid: R = -1
+            if self.timestep_elapsed > MAX_TIMESTEP:
+                Truncated = True
+                return obs, R, Terminated, Truncated, {}
+            else:
+                return obs, R, Terminated, Truncated, {}
+
         elif (action == self.action_enum.PLACE_SCAFOLD):
+            R = -0.5
+            Terminated = False
+            Truncated = False
+            isValid = False
             # agent can only place scaffold if there is nothing in current position
             if (self._isValidPlace(action, current_pos, agent_id)):
                 self.building_zone[current_pos[0], current_pos[1], current_pos[2]] = -2  # place scaffold block
-                obs = self.get_obs(agent_id)
-                self.mutex.release()
-                if self.timestep_elapsed > MAX_TIMESTEP:
-                    return obs, -0.5, False, True, {}
-                else:
-                    return obs, -0.5, False, False, {}
+                isValid = True
             else:  # case: invalid place, so agent just stay here
-                obs = self.get_obs(agent_id)
-                self.mutex.release()
-                if self.timestep_elapsed > MAX_TIMESTEP:
-                    return obs, -1, False, True, {}
-                else:
-                    return obs, -1, False, False, {}
-            pass
+                pass
+
+            obs = self.get_obs(agent_id)
+            self.mutex.release()
+            if not isValid: R = -1
+            if self.timestep_elapsed > MAX_TIMESTEP:
+                Truncated = True
+                return obs, R, Terminated, Truncated, {}
+            else:
+                return obs, R, Terminated, Truncated, {}
         elif (action == self.action_enum.REMOVE_SCAFOLD):
+            R = -0.5
+            Terminated = False
+            Truncated = False
+            isValid = False
             # agent can only remove scaffold if there is a scaffold in current position and there is no scaffold above or agent above
             if (self._isInScaffoldingDomain(current_pos)
              and not self._isInScaffoldingDomain([current_pos[0], current_pos[1], current_pos[2] + 1])
              and not self._thereIsAgent([current_pos[0], current_pos[1], current_pos[2] + 1])):
 
                 self.building_zone[current_pos[0], current_pos[1], current_pos[2]] = 0
-                obs = self.get_obs(agent_id)
-                self.mutex.release()
-                if self.timestep_elapsed > MAX_TIMESTEP:
-                    return obs, -1, False, True, {}
-                else:
-                    return obs, -1, False, False, {}
+                isValid = True
             else:  # case: invalid remove, so agent just stay here
-                obs = self.get_obs(agent_id)
-                self.mutex.release()
-                if self.timestep_elapsed > MAX_TIMESTEP:
-                    return obs, -1, False, True, {}
-                else:
-                    return obs, -1, False, False, {}
+                pass
+            # return obs, reward, done, info
+            obs = self.get_obs(agent_id)
+            self.mutex.release()
+            if not isValid: R = -1
+            if self.timestep_elapsed > MAX_TIMESTEP:
+                Truncated = True
+                return obs, R, Terminated, Truncated, {}
+            else:
+                return obs, R, Terminated, Truncated, {}
         elif (action in [8, 9, 10, 11]):  # place command
+
             pass
 
 
