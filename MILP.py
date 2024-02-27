@@ -457,3 +457,39 @@ if __name__ == "__main__":
         (status, iter_run_time) = output[:2]
         run_time += iter_run_time
         time_limit -= iter_run_time
+
+        if status in ['Feasible', 'Optimal']:
+
+            T = iter_T
+            (status, run_time, lb, ub, sol_paths, sol_pickup, sol_delivery, sol_height) = output
+            sum_of_costs = sum(1 for path in sol_paths for (_, x, _, _) in path if x != '-')
+            if sum_of_costs != ub:
+                print(f'Error: calculated sum-of-costs {sum_of_costs} and objective value {ub} mismatch')
+            break
+
+        elif time_limit < 0:
+            # Done
+            break
+
+print('====================================================================================================')
+print(f'Status: {status}')
+print(f'Run time: {run_time:.2f} seconds')
+if status != 'Infeasible' and status != 'Unknown':
+    print(f'Makespan: {makespan}')
+    print(f'Sum-of-costs: {sum_of_costs}')
+    print(f'Paths: {len(sol_paths)}')
+
+    T = len(sol_paths[0])
+    for path in sol_paths:
+        assert len(path) == T
+    agents = 0
+    for t in range(T):
+        count = 0;
+        for path in sol_paths:
+            count += (path[t][0] != '-')
+        if t > 0:
+            for path in sol_paths:
+                count += (path[t-1][0] != '-' and path[t][0] == '-')
+        if count > agents:
+            agents = count
+    print(f'Agents: {agents}')
