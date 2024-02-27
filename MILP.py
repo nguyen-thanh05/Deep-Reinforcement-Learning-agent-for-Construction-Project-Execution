@@ -247,6 +247,45 @@ def MILP(max_agents, T, X, Y, Z, structure, time_limit, threads, sol_height, sol
         quicksum(agent.select(0,'*','start','start','start','move','*','*','*')) >= 1
     )
 
+    # Input warm start solution
+    if len(sol_paths) > 0:
+
+        # Set up warm start value for height variables
+        for var in height.values():
+            var.Start = 0
+        for (t, x, y) in sol_height:
+            if t < T - 1:
+                z = sol_height[t, x, y]
+                z2 = sol_height[t + 1, x, y]
+                height[t, x, y, z, z2].Start = 1
+
+        # Set up warm start value for agent variables
+        for var in agent.values():
+            var.Start = 0
+        for (a, path) in enumerate(sol_paths):
+            for (t, (c, x, y, z)) in enumerate(path):
+                if x != '-':
+                    if 0 <= t - 1 and t - 1 < T - 3 and path[t - 1][1] == '-' and path[t + 1][1] != '-':
+                        if (a, t) in sol_pickup:
+                            c = 0
+                        elif (a, t) in sol_delivery:
+                            c = 1
+                        agent[t - 1, c, 'start', 'start', 'start', 'move', x, y, z].Start = 1
+
+                    if (a, t) in sol_pickup:
+                        (x2, y2) = sol_pickup[a, t]
+                        z2 = z
+                        agent[t, 0, x, y, z, 'pickup', x2, y2, z2].Start = 1
+                    elif (a, t) in sol_delivery:
+                        (x2, y2) = sol_delivery[a, t]
+                        z2 = z
+                        agent[t, 1, x, y, z, 'delivery', x2, y2, z2].Start = 1
+                    elif t < len(path) - 1 and path[t + 1][1] != '-':
+                        (_, x2, y2, z2) = path[t + 1]
+                        agent[t, c, x, y, z, 'move', x2, y2, z2].Start = 1
+                    elif 0 < t and t < len(path) - 1 and path[t - 1][1] != '-' and path[t + 1][1] == '-':
+                        agent[t, c, x, y, z, 'move', 'end', 'end', 'end'].Start = 1
+
 
 
 if __name__ == "__main__":
