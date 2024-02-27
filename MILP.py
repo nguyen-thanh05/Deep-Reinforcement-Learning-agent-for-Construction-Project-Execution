@@ -22,11 +22,12 @@ def MILP(max_agents, T, X, Y, Z, structure, time_limit, threads, sol_height, sol
     model.Params.TimeLimit = time_limit
 
     # create borders
-    borders = set()
-    borders.add([x, 0, 0] for x in range(X))
-    borders.add([x, Y-1, 0] for x in range(X))
-    borders.add([0, y, 0] for y in range(1, Y-1))
-    borders.add([X-1, y, 0] for y in range(1, Y-1))
+    borders = set(
+        [(x2, 0, 0) for x2 in range(X)] +
+        [(x2, Y - 1, 0) for x2 in range(X)] +
+        [(0, y2, 0) for y2 in range(1, Y - 1)] +
+        [(X - 1, y2, 0) for y2 in range(1, Y - 1)]
+    )
 
     # create variables that move agents from outside the grid to the borders
     agent = tupledict()     # tupledict is a subclass of dict where the keys are a tuplelist
@@ -451,7 +452,7 @@ if __name__ == "__main__":
 
         # solve the MILP problem
         iter_T = makespan + 1
-        output = MILP(max_agents, iter_T, X, Y, Z, structure, 'Sum-of-costs', time_limit, threads,
+        output = MILP(max_agents, iter_T, X, Y, Z, structure, time_limit, threads,
                       sol_height, sol_paths, sol_pickup, sol_delivery)
         (status, iter_run_time) = output[:2]
         run_time += iter_run_time
