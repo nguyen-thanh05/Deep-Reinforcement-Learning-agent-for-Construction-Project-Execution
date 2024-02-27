@@ -197,13 +197,43 @@ def MILP(max_agents, T, X, Y, Z, structure, time_limit, threads, sol_height, sol
                 for (x2,y2) in [(x+1,y),(x,y+1)]:
                     if 0 <= x2 < X and 0 <= y2 < Y:
                         model.addConstr(
-                            quicksum(agent.select(t, '*', x, y, '*', '*', '*', '*', '*')) +
-                            quicksum(agent.select(t, '*', '*', '*', '*', 'pickup', x, y, '*')) +
-                            quicksum(agent.select(t, '*', '*', '*', '*', 'delivery', x, y, '*'))
+                            quicksum(agent.select(t, '*', x, y, '*', 'move', x2, y2, '*')) +
+                            quicksum(agent.select(t, '*', x2, y2, '*', 'move', x, y, '*'))
                             <= 1
                         )
 
+    # height of flow
+    for t in range(T-1):
+        for x in range(X):
+            for y in range(Y):
+                for z in range(Z):
+                    model.addConstr(
+                        quicksum(height.select(t, x, y, z, '*'))
+                        >=
+                        quicksum(agent.select(t, '*', x, y, z, '*', '*', '*', '*'))
+                    )
 
+    # height decrease
+    for t in range(T-1):
+        for x in range(X):
+            for y in range(Y):
+                for z in range(Z-1):
+                    model.addConstr(
+                        height[t, x, y, z + 1, z]
+                        ==
+                        quicksum(agent.select(t, 0, '*', '*', '*', 'pickup', x, y, z))
+                    )
+
+    # height increase
+    for t in range(T-1):
+        for x in range(X):
+            for y in range(Y):
+                for z in range(Z-1):
+                    model.addConstr(
+                        height[t,x,y,z,z+1]
+                        ==
+                        quicksum(agent.select(t,1,'*','*','*','delivery',x,y,z))
+                    )
 
 
 
