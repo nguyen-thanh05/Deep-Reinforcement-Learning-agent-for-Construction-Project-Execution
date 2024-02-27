@@ -108,6 +108,104 @@ def MILP(max_agents, T, X, Y, Z, structure, time_limit, threads, sol_height, sol
         if x != 'start':
             var.Obj = 1
 
+    # define the constraint that height of borders is 0
+    for t in range(T-1):
+        for (x,y,z) in borders:
+            model.addConstr(height[t, x, y, z, z] == 1)
+
+    # define the constraint that height is 0 at the first two time steps
+    t = 0
+    for x in range(X):
+        for y in range(Y):
+            model.addConstr(height[t, x, y, 0, 0] == 1)
+
+    # define the constraint that height is 0 at the last two time steps
+    t = T-2
+    for x in range(X):
+        for y in range(Y):
+            z = structure[x, y] if (x, y) in structure else 0
+            model.addConstr(height[t, x, y, z, z] == 1)
+
+    # define the constraint that exactly one height at each cell and time step
+    for t in range(T-1):
+        for x in range(X):
+            for y in range(Y):
+                # '*' means wildcard, i.e., any value
+                model.addConstr(quicksum(height.select(t, x, y, '*', '*')) == 1)
+
+    # define the constraint of changes in height
+    for t in range(T-2):
+        for x in range(X):
+            for y in range(Y):
+                for z in range(Z):
+                    model.addConstr(
+                        quicksum(height.select(t, x, y, '*', z))
+                        ==
+                        quicksum(height.select(t+1, x, y, z, '*')),
+                    )
+
+    # define the constraint of maximum number of agents
+    for t in range(T):
+        model.addConstr(
+            quicksum(
+                var for ((tt, c, x, y, z, action, x2, y2, z2), var) in agent.items() if tt == t)
+            # Include start here because an agent takes one step to exit then come back into the map
+            <= max_agents
+        )
+
+    # define the flow
+    for t in range(T-2):
+        for x in range(X):
+            for y in range(Y):
+                for z in range(Z):
+                    model.addConstr(
+                        quicksum(agent.select(t, 0, '*', '*', '*', 'move', x, y, z)) +
+                        quicksum(agent.select(t, 1, x, y, z,'delivery', '*', '*', '*'))
+                        ==
+                        quicksum(agent.select(t+1, 0, x, y, z, 'move', '*', '*', '*')) +
+                        quicksum(agent.select(t+1, 0, x, y, z, 'pickup', '*', '*', '*'))
+                    )
+
+    # Flow - carrying
+    for t in range(T-2):
+        for x in range(X):
+            for y in range(Y):
+                for z in range(Z):
+                    model.addConstr(
+                        quicksum(agent.select(t, 1, '*', '*', '*', 'move', x, y, z)) +
+                        quicksum(agent.select(t, 0, x, y, z, 'pickup', '*', '*', '*'))
+                        ==
+                        quicksum(agent.select(t+1, 1, x, y, z, 'move', '*', '*', '*')) +
+                        quicksum(agent.select(t+1, 1, x, y, z, 'delivery', '*', '*', '*'))
+                    )
+
+    # avoid agent vertex collision
+    for t in range(1, T-1):
+        for x in range(X):
+            for y in range(Y):
+                model.addConstr(
+                    quicksum(agent.select(t, '*', x, y, '*', '*', '*', '*', '*')) +
+                    quicksum(agent.select(t, '*', '*', '*', '*', 'pickup', x, y, '*')) +
+                    quicksum(agent.select(t, '*', '*', '*', '*', 'delivery', x, y, '*'))
+                    <= 1
+                )
+
+    # avoid agent edge collision
+    for t in range(1,T-1):
+        for x in range(X):
+            for y in range(Y):
+                for (x2,y2) in [(x+1,y),(x,y+1)]:
+                    if 0 <= x2 < X and 0 <= y2 < Y:
+                        model.addConstr(
+                            quicksum(agent.select(t, '*', x, y, '*', '*', '*', '*', '*')) +
+                            quicksum(agent.select(t, '*', '*', '*', '*', 'pickup', x, y, '*')) +
+                            quicksum(agent.select(t, '*', '*', '*', '*', 'delivery', x, y, '*'))
+                            <= 1
+                        )
+
+
+
+
 
 if __name__ == "__main__":
     # leverage as many cores as possible for parallel processing
