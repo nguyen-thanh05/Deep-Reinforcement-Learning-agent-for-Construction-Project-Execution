@@ -235,6 +235,18 @@ def MILP(max_agents, T, X, Y, Z, structure, time_limit, threads, sol_height, sol
                         quicksum(agent.select(t,1,'*','*','*','delivery',x,y,z))
                     )
 
+    # Minimum number of agents
+    model.addConstr(
+        quicksum(agent.select('*','*','start','start','start','move','*','*','*'))
+        >=
+        sum(structure.values())
+    )
+
+    # Start at the first time step
+    model.addConstr(
+        quicksum(agent.select(0,'*','start','start','start','move','*','*','*')) >= 1
+    )
+
 
 
 if __name__ == "__main__":
