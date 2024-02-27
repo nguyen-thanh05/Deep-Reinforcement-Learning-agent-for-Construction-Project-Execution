@@ -308,6 +308,75 @@ def MILP(max_agents, T, X, Y, Z, structure, time_limit, threads, sol_height, sol
         lb = int(ceil(max(0.0, model.ObjBound)))
         return ('Unknown', run_time, lb)
 
+    else:
+        # Get statistics
+        lb = int(ceil(max(0.0, model.ObjBound)))
+        ub = int(model.ObjVal)
+
+        # Get heights
+        sol_height = {
+            (t+1,x,y): [z2 for z2 in range(Z) for var in height.select(t,x,y,'*',z2) if var.X > 1e-4]
+            for t in range(T-1) for x in range(X) for y in range(Y)
+        }
+        for ((t,x,y),zs) in sol_height.items():
+            assert len(zs) == 1
+        sol_height = {key: val[0] for (key,val) in sol_height.items()}
+        for x in range(X):
+            for y in range(Y):
+                sol_height[0,x,y] = 0
+
+        # Get paths.
+        N = int(sum(var.X for var in agent.select('*','*','start','start','start','move','*','*','*')))
+        sol_paths = [[('-','-','-','-')] * T for _ in range(N)]
+        a = 0
+        for ((t,c,x,y,z,action,x2,y2,z2),var) in agent.items():
+            if var.X > 1e-4 and x == 'start':
+                sol_paths[a][t+1] = (c,x2,y2,z2)
+                a += 1
+        for a in range(N):
+            t = min(t for (t,(c,x,y,z)) in enumerate(sol_paths[a]) if x != '-')
+            (c,x,y,z) = sol_paths[a][t]
+
+            while True:
+                next = []
+
+                # Find next move.
+                for (x2,y2) in [(x-1,y),(x+1,y),(x,y-1),(x,y+1)]:
+                    for z2 in [z-1,z,z+1]:
+                        if 0 <= x2 and x2 < X and 0 <= y2 and y2 < Y and 0 <= z2 and z2 < Z:
+                            if (t,c,x,y,z,'move',x2,y2,z2) in agent and agent[t,c,x,y,z,'move',x2,y2,z2].X > 1e-4:
+                                next.append((c,x2,y2,z2))
+                (x2,y2,z2) = (x,y,z)
+                if (t,c,x,y,z,'move',x2,y2,z2) in agent and agent[t,c,x,y,z,'move',x2,y2,z2].X > 1e-4:
+                    next.append((c,x2,y2,z2))
+                (x2,y2,z2) = ('end','end','end')
+                if (t,c,x,y,z,'move',x2,y2,z2) in agent and agent[t,c,x,y,z,'move',x2,y2,z2].X > 1e-4:
+                    next.append((c,x2,y2,z2))
+
+                # Find next pickup or delivery.
+                z2 = z
+                if c == 0:
+                    for (x2,y2) in [(x-1,y),(x+1,y),(x,y-1),(x,y+1)]:
+                        if 0 <= x2 and x2 < X and 0 <= y2 and y2 < Y:
+                            if (t,c,x,y,z,'pickup',x2,y2,z2) in agent and agent[t,c,x,y,z,'pickup',x2,y2,z2].X > 1e-4:
+                                next.append((1,x,y,z))
+                else:
+                    for (x2,y2) in [(x-1,y),(x+1,y),(x,y-1),(x,y+1)]:
+                        if 0 <= x2 and x2 < X and 0 <= y2 and y2 < Y:
+                            if (t,c,x,y,z,'delivery',x2,y2,z2) in agent and agent[t,c,x,y,z,'delivery',x2,y2,z2].X > 1e-4:
+                                next.append((0,x,y,z))
+
+                # Stop if reached the end.
+                assert len(next) == 1
+                (c,x,y,z) = next[0]
+                if x == 'end':
+                    break
+
+                # Store the action.
+                t += 1
+                sol_paths[a][t] = (c,x,y,z)
+
+
 
 if __name__ == "__main__":
     # leverage as many cores as possible for parallel processing
