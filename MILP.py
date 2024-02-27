@@ -11,7 +11,7 @@ from gurobipy import *
 from math import ceil
 
 
-def MILP(max_agents, T, X, Y, Z, structure, objective, time_limit, threads, sol_height, sol_paths, sol_pickup, sol_delivery):
+def MILP(max_agents, T, X, Y, Z, structure, time_limit, threads, sol_height, sol_paths, sol_pickup, sol_delivery):
 
     # initialize the model
     model = Model('MILP')
@@ -101,6 +101,12 @@ def MILP(max_agents, T, X, Y, Z, structure, objective, time_limit, threads, sol_
 
     # process any pending model modifications / i.e., update the model to make sure all the variables are added
     model.update()
+
+    # define the objective function (i.e., sum-of-costs)
+    # add cost to every action taken
+    for ((t, c, x, y, z, action, x2, y2, z2), var) in agent.items():
+        if x != 'start':
+            var.Obj = 1
 
 
 if __name__ == "__main__":
