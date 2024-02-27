@@ -376,6 +376,35 @@ def MILP(max_agents, T, X, Y, Z, structure, time_limit, threads, sol_height, sol
                 t += 1
                 sol_paths[a][t] = (c,x,y,z)
 
+        # Get pickups and deliveries.
+        sol_pickup = {}
+        sol_delivery = {}
+        for a in range(N):
+            for (t,(c,x,y,z)) in enumerate(sol_paths[a]):
+                if x != '-' and t < T-2:
+                    if z < Z-1:
+                        z2 = z
+                        if c == 0:
+                            for (x2,y2) in [(x-1,y),(x+1,y),(x,y-1),(x,y+1)]:
+                                if 0 <= x2 and x2 < X and 0 <= y2 and y2 < Y:
+                                    if agent[t,c,x,y,z,'pickup',x2,y2,z2].X > 1e-4:
+                                        assert (a,t) not in sol_pickup
+                                        sol_pickup[a,t] = (x2,y2)
+                        elif c == 1:
+                            for (x2,y2) in [(x-1,y),(x+1,y),(x,y-1),(x,y+1)]:
+                                if 0 <= x2 and x2 < X and 0 <= y2 and y2 < Y:
+                                    if agent[t,c,x,y,z,'delivery',x2,y2,z2].X > 1e-4:
+                                        assert (a,t) not in sol_delivery
+                                        sol_delivery[a,t] = (x2,y2)
+
+        # Return
+        if status == GRB.Status.TIME_LIMIT or status == GRB.Status.INTERRUPTED:
+            return ('Feasible', run_time, lb, ub, sol_paths, sol_pickup, sol_delivery, sol_height)
+        elif status == GRB.Status.OPTIMAL:
+            return ('Optimal', run_time, lb, ub, sol_paths, sol_pickup, sol_delivery, sol_height)
+        else:
+            print(f'Invalid Gurobi status {status}')
+            exit()
 
 
 if __name__ == "__main__":
