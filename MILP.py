@@ -286,6 +286,27 @@ def MILP(max_agents, T, X, Y, Z, structure, time_limit, threads, sol_height, sol
                     elif 0 < t and t < len(path) - 1 and path[t - 1][1] != '-' and path[t + 1][1] == '-':
                         agent[t, c, x, y, z, 'move', 'end', 'end', 'end'].Start = 1
 
+    # Solve
+    model.optimize()
+    print('')
+
+    # Delete log file
+    if os._exists('gurobi.log'):
+        os.remove('gurobi.log')
+
+    # Get statistics
+    status = model.Status
+    run_time = model.Runtime
+    sol_count = model.SolCount
+
+    # Process output
+    if status == GRB.Status.INFEASIBLE:
+        return ('Infeasible', run_time, -1)
+
+    elif sol_count == 0:
+        # print('Did not find any feasible solution')
+        lb = int(ceil(max(0.0, model.ObjBound)))
+        return ('Unknown', run_time, lb)
 
 
 if __name__ == "__main__":
