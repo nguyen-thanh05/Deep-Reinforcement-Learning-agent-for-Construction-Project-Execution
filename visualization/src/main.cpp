@@ -33,9 +33,10 @@ int main(int argc, char* argv[])
     }
 
     fs::path filePath = modelsPath / argv[3];
-
+    std::cout << filePath << std::endl;
     const int screenWidth = 1000;
     const int screenHeight = 600;
+
 
     GWEnv::GridWorld env(size, size, size, filePath.generic_string(), save);
     InitWindow(screenWidth, screenHeight, "Grid World");

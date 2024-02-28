@@ -68,6 +68,10 @@ private:
 
     void LoadFromFile();
 
+    void CreatePDDLFile(std::string problemName) const;
+
+    static std::string adjacent(int i1, int j1, int k1, int i2, int j2, int k2);
+
     Action Step();
 
     // Whether a block could be placed at coordinates. See Coordinates struct comment

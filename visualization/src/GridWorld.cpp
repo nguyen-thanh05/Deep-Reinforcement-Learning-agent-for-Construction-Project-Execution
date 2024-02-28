@@ -1,6 +1,7 @@
 #include <fstream>
 #include <iostream>
 #include <thread>
+#include <sstream>
 #include "GridWorld.h"
 
 namespace GWEnv{
@@ -184,6 +185,7 @@ void GridWorld::SaveToFile() const {
 */
 
 void GridWorld::SaveToFile() const {
+    std::cout << "Saving to file" << std::endl;
     size_t size = w * d * h + 3;
     std::unique_ptr<int []> flatArray = std::make_unique<int[]>(size);
     flatArray[0] = w;
@@ -217,6 +219,15 @@ Action GridWorld::Step() {
         return Action::NONE;
     }
 
+    // Save to pddl
+    if (IsKeyPressed(KEY_P)) {
+        if(enterDelayed) return Action::NONE;
+        enterDelayed = true;
+
+        CreatePDDLFile("test");
+        return Action::NONE;
+    }
+
     // A little hack to avoid setting enterDelayed = true in every if statement
     bool prevDelayedStatus = enterDelayed;
     enterDelayed = false;
@@ -226,8 +237,8 @@ Action GridWorld::Step() {
     if (IsKeyPressed(KEY_S)) return Action::BACKWARD;
     if (IsKeyPressed(KEY_A)) return Action::LEFT;
     if (IsKeyPressed(KEY_D)) return Action::RIGHT;
-    if (IsKeyPressed(KEY_E)) return Action::UP;
-    if (IsKeyPressed(KEY_Q)) return Action::DOWN;
+    if (IsKeyPressed(KEY_UP)) return Action::UP;
+    if (IsKeyPressed(KEY_DOWN)) return Action::DOWN;
 
     if (IsKeyPressed(KEY_SPACE)) return Action::PLACE;
     if (IsKeyPressed(KEY_X)) return Action::REMOVE;
@@ -262,6 +273,90 @@ void GridWorld::LoadFromFile() {
         }
     }
     file.close();
+}
+
+void GridWorld::CreatePDDLFile(std::string problemName)  const {
+    std::ofstream file(filePath);
+
+    // Add the start of the file template
+    file << "(define (problem " << problemName << ")\n";
+    file << "\t(:domain cubeworld)\n";
+
+    // Define the objects
+    file << "\t(:objects\n";
+
+    file << "\t\t";
+    for(int i = 0; i < w;i++) {
+        for(int j = 0; j < h; j++) {
+            for(int k = 0; k < d; k++)
+                file << "p" << i << "_" << j << "_" << k << " ";
+        }
+    }
+    file << "- position\n";
+    file << "\t)\n\n";
+
+    // Define the initial state
+    file << "\t(:init\n";
+
+    // Create the starting location for the agent
+    file << "\t\t(at-agent p1_1_1)\n";
+    for(int i = 0; i < w; i++) {
+        for(int j = 0; j < h; j++) {
+            for(int k = 0; k < d; k++) {
+                // Adjacent to left block
+                if(i > 0)
+                    file << adjacent(i, j, k, i - 1, j, k);
+
+                // Adjacent to right block
+                if(i < w - 1)
+                    file << adjacent(i, j, k, i + 1, j, k);
+
+                // Adjacent to backward block
+                if(j > 0)
+                    file << adjacent(i, j, k, i, j - 1, k);
+
+                // Adjacent to forward block
+                if(j < h - 1)
+                    file << adjacent(i, j, k, i, j + 1, k);
+
+                // Adjacent to downward block
+                if(k > 0)
+                    file << adjacent(i, j, k, i, j, k - 1);
+
+                // Adjacent to upward block
+                if(j < d - 1)
+                    file << adjacent(i, j, k, i, j, k + 1);
+            }
+        }
+    }
+    file << "\t)\n\n";
+
+    // Define the goal state
+    file << "\t(:goal (and\n";
+
+    for(int i = 0; i < w; i++) {
+        for(int j = 0; j < h; j++) {
+            for(int k = 0; k < d; k++) {
+                if(grid[i][j][k]) {
+                    file << "\t\t(full p" << i << "_" << j << "_" << k << ")\n";
+                }
+            }
+        }
+    }
+
+    file << "\t))\n";
+    file << ")\n";
+
+    file.close();
+}
+
+std::string GridWorld::adjacent(int i1, int j1, int k1, int i2, int j2, int k2) {
+   std::stringstream adj;
+   adj << "\t\t";
+   adj << "(adjacent ";
+   adj << "p" << i1 << "_" << j1 << "_" << k1 << " ";
+   adj << "p" << i2 << "_" << j2 << "_" << k2 << ")\n";
+   return adj.str();
 }
 
 }
