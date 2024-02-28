@@ -3,7 +3,7 @@
 # Exact Approaches to the Multi-agent Collective Construction Problem by E.Lam, et al.
 # https://link.springer.com/chapter/10.1007/978-3-030-58475-7_43
 
-# Adapted from the original code provided by E. Lam.
+# Adapted from source code provided by E. Lam upon email request.
 # -------------------------------------------------------------------------------------
 
 import multiprocessing
@@ -30,6 +30,7 @@ def MILP(max_agents, T, X, Y, Z, structure, time_limit, threads, sol_height, sol
     )
 
     # create variables that move agents from outside the grid to the borders
+    # Robots can enter the world at a border cell
     agent = tupledict()     # tupledict is a subclass of dict where the keys are a tuplelist
     x = y = z = 'start'
     action = 'move'
@@ -40,6 +41,8 @@ def MILP(max_agents, T, X, Y, Z, structure, time_limit, threads, sol_height, sol
                 agent[t, c, x, y, z, action, x2, y2, z2] = model.addVar(vtype=GRB.BINARY)
 
     # create variables that move agents from the borders to the inside of the grid
+    # Robots can move to a neighboring cell at the same level, one level above or one
+    # level below.
     action = 'move'
     for t in range(1, T-2):
         for c in range(2):
@@ -58,6 +61,7 @@ def MILP(max_agents, T, X, Y, Z, structure, time_limit, threads, sol_height, sol
                         agent[t, c, x, y, z, action, x2, y2, z2] = model.addVar(vtype=GRB.BINARY)
 
     # create variables that move agent from the border to the end vertex
+    # Robots can exit the world at a border cell
     x2 = y2 = z2 = 'end'
     action = 'move'
     for t in range(2, T - 1):
@@ -79,6 +83,9 @@ def MILP(max_agents, T, X, Y, Z, structure, time_limit, threads, sol_height, sol
                             agent[t, c, x, y, z, action, x2, y2, z2] = model.addVar(vtype=GRB.BINARY)
 
     # create variables that allows delivery action
+    # If the robot is carrying a block, it can deliver the block to a neighboring
+    # position of the same height as its current cell, raising the height at the delivery
+    # position by one.
     action = 'delivery'
     for t in range(1, T-2):
         c = 1
@@ -104,37 +111,45 @@ def MILP(max_agents, T, X, Y, Z, structure, time_limit, threads, sol_height, sol
     model.update()
 
     # define the objective function (i.e., sum-of-costs)
-    # add cost to every action taken
+    # minimizes the sum-of-costs objective, i.e., the total
+    # number of cells occupied by robots throughout the planning horizon. The
+    # makespan is minimized external to the model by sequentially increasing T.
+
+    # add cost to every action taken, each action costs 1
     for ((t, c, x, y, z, action, x2, y2, z2), var) in agent.items():
         if x != 'start':
             var.Obj = 1
 
-    # define the constraint that height of borders is 0
+    # prevents blocks from being placed at the border positions because robots must enter
+    # and exit the world on the ground level
     for t in range(T-1):
         for (x, y, z) in borders:
             model.addConstr(height[t, x, y, z, z] == 1)
 
-    # define the constraint that height is 0 at the first two time steps
+    # starts the world devoid of blocks. This constraint states that all cells have height 0
+    # in the first two timesteps because the earliest a robot can appear in the world is in timestep
+    # 1; hence blocks cannot be placed in the world until timestep 2
     t = 0
     for x in range(X):
         for y in range(Y):
             model.addConstr(height[t, x, y, 0, 0] == 1)
 
-    # define the constraint that height is 0 at the last two time steps
+    # enforces the completion of the structure. Robots must have exited the world by
+    # timestep T − 1. So they must be at a border cell exiting before timestep T − 2.
     t = T-2
     for x in range(X):
         for y in range(Y):
             z = structure[x, y] if (x, y) in structure else 0
             model.addConstr(height[t, x, y, z, z] == 1)
 
-    # define the constraint that exactly one height at each cell and time step
+    # flows the height of each position from one timestep to the next
     for t in range(T-1):
         for x in range(X):
             for y in range(Y):
                 # '*' means wildcard, i.e., any value
                 model.addConstr(quicksum(height.select(t, x, y, '*', '*')) == 1)
 
-    # define the constraint of changes in height
+    # enforces one value of height for every position in each timestep
     for t in range(T-2):
         for x in range(X):
             for y in range(Y):
@@ -145,7 +160,7 @@ def MILP(max_agents, T, X, Y, Z, structure, time_limit, threads, sol_height, sol
                         quicksum(height.select(t+1, x, y, z, '*'))
                     )
 
-    # define the constraint of maximum number of agents
+    # flows a robot not carrying a block in and out of a cell
     for t in range(T):
         model.addConstr(
             quicksum(
@@ -154,7 +169,9 @@ def MILP(max_agents, T, X, Y, Z, structure, time_limit, threads, sol_height, sol
             <= max_agents
         )
 
-    # define the flow
+    # if a robot carrying a block is in cell (x, y, z) at timestep t + 1 (either by moving into the cell
+    # with a block or by picking up a block nearby), then it must afterward move while continuing to
+    # carry the block or deliver the block
     for t in range(T-2):
         for x in range(X):
             for y in range(Y):
@@ -180,7 +197,8 @@ def MILP(max_agents, T, X, Y, Z, structure, time_limit, threads, sol_height, sol
                         quicksum(agent.select(t+1, 1, x, y, z, 'delivery', '*', '*', '*'))
                     )
 
-    # avoid agent vertex collision
+    # prevents vertex collisions, it permits at most one robot to be at position (x, y) or to pick up from or deliver
+    # a block to position (x, y) at any timestep
     for t in range(1, T-1):
         for x in range(X):
             for y in range(Y):
@@ -191,7 +209,7 @@ def MILP(max_agents, T, X, Y, Z, structure, time_limit, threads, sol_height, sol
                     <= 1
                 )
 
-    # avoid agent edge collision
+    # edge collision constraint, which prevents robots from exchanging positions
     for t in range(1, T-1):
         for x in range(X):
             for y in range(Y):
@@ -249,6 +267,8 @@ def MILP(max_agents, T, X, Y, Z, structure, time_limit, threads, sol_height, sol
     )
 
     # Input warm start solution
+    # warm start means using the optimal solution of a related/simplified
+    # optimization problem to provide the initial values
     if len(sol_paths) > 0:
 
         # Set up warm start value for height variables
