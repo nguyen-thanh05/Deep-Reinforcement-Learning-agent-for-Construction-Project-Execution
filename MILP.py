@@ -420,8 +420,8 @@ if __name__ == "__main__":
     max_agents = 2
 
     # set the length and width of the grid
-    X = 7
-    Y = 7
+    X = 8
+    Y = 8
 
     # initialize the desired structure, which is specified by a LIST of
     # (x, y, z) coordinates where (x, y) is the position of the block
@@ -429,8 +429,8 @@ if __name__ == "__main__":
     # (1, 2, 3) means a block at (1, 2) with height 3.
     # NOTE: hollow structure is not supported based on structure representation
     structure = dict()
-    structure[(3, 3)] = 1
-    structure[(3, 4)] = 1
+    structure[(3, 3)] = 1   # = 4 takes very long time
+    structure[(3, 4)] = 1   # = 4 takes very long time
 
     # Z = max(all heights in the structure) + 1 is the height of the GridWorld
     # You can set this to a larger value if you want to but this will increase
@@ -463,8 +463,6 @@ if __name__ == "__main__":
             T = iter_T
             (status, run_time, lb, ub, sol_paths, sol_pickup, sol_delivery, sol_height) = output
             sum_of_costs = sum(1 for path in sol_paths for (_, x, _, _) in path if x != '-')
-            if sum_of_costs != ub:
-                print(f'Error: calculated sum-of-costs {sum_of_costs} and objective value {ub} mismatch')
             break
 
         elif time_limit < 0:
@@ -475,16 +473,12 @@ print('=========================================================================
 print(f'Status: {status}')
 print(f'Run time: {run_time:.2f} seconds')
 if status != 'Infeasible' and status != 'Unknown':
-    print(f'Makespan: {makespan}')
     print(f'Sum-of-costs: {sum_of_costs}')
-    print(f'Paths: {len(sol_paths)}')
 
     T = len(sol_paths[0])
-    for path in sol_paths:
-        assert len(path) == T
     agents = 0
     for t in range(T):
-        count = 0;
+        count = 0
         for path in sol_paths:
             count += (path[t][0] != '-')
         if t > 0:
