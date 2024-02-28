@@ -68,7 +68,7 @@ def MILP(max_agents, T, X, Y, Z, structure, time_limit, threads, sol_height, sol
 
     # create variables that allows pickup action
     action = 'pickup'
-    for t in range(1,T-2):
+    for t in range(1, T-2):
         c = 0
         for x in range(X):
             for y in range(Y):
@@ -80,12 +80,12 @@ def MILP(max_agents, T, X, Y, Z, structure, time_limit, threads, sol_height, sol
 
     # create variables that allows delivery action
     action = 'delivery'
-    for t in range(1,T-2):
+    for t in range(1, T-2):
         c = 1
         for x in range(X):
             for y in range(Y):
                 for z in range(Z-1):
-                    for (x2,y2) in [(x-1,y),(x+1,y),(x,y-1),(x,y+1)]:
+                    for (x2, y2) in [(x-1, y), (x+1, y), (x, y-1), (x, y+1)]:
                         if 0 <= x2 < X and 0 <= y2 < Y:
                             z2 = z
                             agent[t, c, x, y, z, action, x2, y2, z2] = model.addVar(vtype=GRB.BINARY)
@@ -111,7 +111,7 @@ def MILP(max_agents, T, X, Y, Z, structure, time_limit, threads, sol_height, sol
 
     # define the constraint that height of borders is 0
     for t in range(T-1):
-        for (x,y,z) in borders:
+        for (x, y, z) in borders:
             model.addConstr(height[t, x, y, z, z] == 1)
 
     # define the constraint that height is 0 at the first two time steps
@@ -142,7 +142,7 @@ def MILP(max_agents, T, X, Y, Z, structure, time_limit, threads, sol_height, sol
                     model.addConstr(
                         quicksum(height.select(t, x, y, '*', z))
                         ==
-                        quicksum(height.select(t+1, x, y, z, '*')),
+                        quicksum(height.select(t+1, x, y, z, '*'))
                     )
 
     # define the constraint of maximum number of agents
@@ -161,7 +161,7 @@ def MILP(max_agents, T, X, Y, Z, structure, time_limit, threads, sol_height, sol
                 for z in range(Z):
                     model.addConstr(
                         quicksum(agent.select(t, 0, '*', '*', '*', 'move', x, y, z)) +
-                        quicksum(agent.select(t, 1, x, y, z,'delivery', '*', '*', '*'))
+                        quicksum(agent.select(t, 1, x, y, z, 'delivery', '*', '*', '*'))
                         ==
                         quicksum(agent.select(t+1, 0, x, y, z, 'move', '*', '*', '*')) +
                         quicksum(agent.select(t+1, 0, x, y, z, 'pickup', '*', '*', '*'))
@@ -192,10 +192,10 @@ def MILP(max_agents, T, X, Y, Z, structure, time_limit, threads, sol_height, sol
                 )
 
     # avoid agent edge collision
-    for t in range(1,T-1):
+    for t in range(1, T-1):
         for x in range(X):
             for y in range(Y):
-                for (x2,y2) in [(x+1,y),(x,y+1)]:
+                for (x2, y2) in [(x+1, y), (x, y+1)]:
                     if 0 <= x2 < X and 0 <= y2 < Y:
                         model.addConstr(
                             quicksum(agent.select(t, '*', x, y, '*', 'move', x2, y2, '*')) +
@@ -231,21 +231,21 @@ def MILP(max_agents, T, X, Y, Z, structure, time_limit, threads, sol_height, sol
             for y in range(Y):
                 for z in range(Z-1):
                     model.addConstr(
-                        height[t,x,y,z,z+1]
+                        height[t, x, y, z, z+1]
                         ==
-                        quicksum(agent.select(t,1,'*','*','*','delivery',x,y,z))
+                        quicksum(agent.select(t, 1, '*', '*', '*', 'delivery', x, y, z))
                     )
 
     # Minimum number of agents
     model.addConstr(
-        quicksum(agent.select('*','*','start','start','start','move','*','*','*'))
+        quicksum(agent.select('*', '*', 'start', 'start', 'start', 'move', '*', '*', '*'))
         >=
         sum(structure.values())
     )
 
     # Start at the first time step
     model.addConstr(
-        quicksum(agent.select(0,'*','start','start','start','move','*','*','*')) >= 1
+        quicksum(agent.select(0, '*', 'start', 'start', 'start', 'move', '*', '*', '*')) >= 1
     )
 
     # Input warm start solution
@@ -266,7 +266,7 @@ def MILP(max_agents, T, X, Y, Z, structure, time_limit, threads, sol_height, sol
         for (a, path) in enumerate(sol_paths):
             for (t, (c, x, y, z)) in enumerate(path):
                 if x != '-':
-                    if 0 <= t - 1 and t - 1 < T - 3 and path[t - 1][1] == '-' and path[t + 1][1] != '-':
+                    if 0 <= t - 1 < T - 3 and path[t - 1][1] == '-' and path[t + 1][1] != '-':
                         if (a, t) in sol_pickup:
                             c = 0
                         elif (a, t) in sol_delivery:
@@ -284,7 +284,7 @@ def MILP(max_agents, T, X, Y, Z, structure, time_limit, threads, sol_height, sol
                     elif t < len(path) - 1 and path[t + 1][1] != '-':
                         (_, x2, y2, z2) = path[t + 1]
                         agent[t, c, x, y, z, 'move', x2, y2, z2].Start = 1
-                    elif 0 < t and t < len(path) - 1 and path[t - 1][1] != '-' and path[t + 1][1] == '-':
+                    elif 0 < t < len(path) - 1 and path[t - 1][1] != '-' and path[t + 1][1] == '-':
                         agent[t, c, x, y, z, 'move', 'end', 'end', 'end'].Start = 1
 
     # Solve
@@ -302,12 +302,12 @@ def MILP(max_agents, T, X, Y, Z, structure, time_limit, threads, sol_height, sol
 
     # Process output
     if status == GRB.Status.INFEASIBLE:
-        return ('Infeasible', run_time, -1)
+        return 'Infeasible', run_time, -1
 
     elif sol_count == 0:
         # print('Did not find any feasible solution')
         lb = int(ceil(max(0.0, model.ObjBound)))
-        return ('Unknown', run_time, lb)
+        return 'Unknown', run_time, lb
 
     else:
         # Get statistics
@@ -316,87 +316,87 @@ def MILP(max_agents, T, X, Y, Z, structure, time_limit, threads, sol_height, sol
 
         # Get heights
         sol_height = {
-            (t+1,x,y): [z2 for z2 in range(Z) for var in height.select(t,x,y,'*',z2) if var.X > 1e-4]
+            (t+1, x, y): [z2 for z2 in range(Z) for var in height.select(t, x, y, '*', z2) if var.X > 1e-4]
             for t in range(T-1) for x in range(X) for y in range(Y)
         }
-        for ((t,x,y),zs) in sol_height.items():
+        for ((t, x, y), zs) in sol_height.items():
             assert len(zs) == 1
-        sol_height = {key: val[0] for (key,val) in sol_height.items()}
+        sol_height = {key: val[0] for (key, val) in sol_height.items()}
         for x in range(X):
             for y in range(Y):
-                sol_height[0,x,y] = 0
+                sol_height[0, x, y] = 0
 
         # Get paths.
-        N = int(sum(var.X for var in agent.select('*','*','start','start','start','move','*','*','*')))
-        sol_paths = [[('-','-','-','-')] * T for _ in range(N)]
+        N = int(sum(var.X for var in agent.select('*', '*', 'start', 'start', 'start', 'move', '*', '*', '*')))
+        sol_paths = [[('-', '-', '-', '-')] * T for _ in range(N)]
         a = 0
-        for ((t,c,x,y,z,action,x2,y2,z2),var) in agent.items():
+        for ((t, c, x, y, z, action, x2, y2, z2), var) in agent.items():
             if var.X > 1e-4 and x == 'start':
-                sol_paths[a][t+1] = (c,x2,y2,z2)
+                sol_paths[a][t+1] = (c, x2, y2, z2)
                 a += 1
         for a in range(N):
-            t = min(t for (t,(c,x,y,z)) in enumerate(sol_paths[a]) if x != '-')
-            (c,x,y,z) = sol_paths[a][t]
+            t = min(t for (t, (c, x, y, z)) in enumerate(sol_paths[a]) if x != '-')
+            (c, x, y, z) = sol_paths[a][t]
 
             while True:
                 next = []
 
                 # Find next move.
-                for (x2,y2) in [(x-1,y),(x+1,y),(x,y-1),(x,y+1)]:
-                    for z2 in [z-1,z,z+1]:
-                        if 0 <= x2 and x2 < X and 0 <= y2 and y2 < Y and 0 <= z2 and z2 < Z:
-                            if (t,c,x,y,z,'move',x2,y2,z2) in agent and agent[t,c,x,y,z,'move',x2,y2,z2].X > 1e-4:
-                                next.append((c,x2,y2,z2))
-                (x2,y2,z2) = (x,y,z)
-                if (t,c,x,y,z,'move',x2,y2,z2) in agent and agent[t,c,x,y,z,'move',x2,y2,z2].X > 1e-4:
-                    next.append((c,x2,y2,z2))
-                (x2,y2,z2) = ('end','end','end')
-                if (t,c,x,y,z,'move',x2,y2,z2) in agent and agent[t,c,x,y,z,'move',x2,y2,z2].X > 1e-4:
-                    next.append((c,x2,y2,z2))
+                for (x2, y2) in [(x-1, y), (x+1, y), (x, y-1), (x, y+1)]:
+                    for z2 in [z-1, z, z+1]:
+                        if 0 <= x2 < X and 0 <= y2 < Y and 0 <= z2 < Z:
+                            if (t, c, x, y, z, 'move', x2, y2, z2) in agent and agent[t, c, x, y, z, 'move', x2, y2, z2].X > 1e-4:
+                                next.append((c, x2, y2, z2))
+                (x2, y2, z2) = (x, y, z)
+                if (t, c, x, y, z, 'move', x2, y2, z2) in agent and agent[t, c, x, y, z, 'move', x2, y2, z2].X > 1e-4:
+                    next.append((c, x2, y2, z2))
+                (x2, y2, z2) = ('end', 'end', 'end')
+                if (t, c, x, y, z, 'move', x2, y2, z2) in agent and agent[t, c, x, y, z, 'move', x2, y2, z2].X > 1e-4:
+                    next.append((c, x2, y2, z2))
 
                 # Find next pickup or delivery.
                 z2 = z
                 if c == 0:
-                    for (x2,y2) in [(x-1,y),(x+1,y),(x,y-1),(x,y+1)]:
-                        if 0 <= x2 and x2 < X and 0 <= y2 and y2 < Y:
-                            if (t,c,x,y,z,'pickup',x2,y2,z2) in agent and agent[t,c,x,y,z,'pickup',x2,y2,z2].X > 1e-4:
-                                next.append((1,x,y,z))
+                    for (x2, y2) in [(x-1, y), (x+1, y), (x, y-1), (x, y+1)]:
+                        if 0 <= x2 < X and 0 <= y2 < Y:
+                            if (t, c, x, y, z, 'pickup', x2, y2, z2) in agent and agent[t, c, x, y, z, 'pickup', x2, y2, z2].X > 1e-4:
+                                next.append((1, x, y, z))
                 else:
-                    for (x2,y2) in [(x-1,y),(x+1,y),(x,y-1),(x,y+1)]:
-                        if 0 <= x2 and x2 < X and 0 <= y2 and y2 < Y:
-                            if (t,c,x,y,z,'delivery',x2,y2,z2) in agent and agent[t,c,x,y,z,'delivery',x2,y2,z2].X > 1e-4:
-                                next.append((0,x,y,z))
+                    for (x2, y2) in [(x-1, y), (x+1, y), (x, y-1), (x, y+1)]:
+                        if 0 <= x2 < X and 0 <= y2 < Y:
+                            if (t, c, x, y, z, 'delivery', x2, y2, z2) in agent and agent[t, c, x, y, z, 'delivery', x2, y2, z2].X > 1e-4:
+                                next.append((0, x, y, z))
 
                 # Stop if reached the end.
                 assert len(next) == 1
-                (c,x,y,z) = next[0]
+                (c, x, y, z) = next[0]
                 if x == 'end':
                     break
 
                 # Store the action.
                 t += 1
-                sol_paths[a][t] = (c,x,y,z)
+                sol_paths[a][t] = (c, x, y, z)
 
         # Get pickups and deliveries.
         sol_pickup = {}
         sol_delivery = {}
         for a in range(N):
-            for (t,(c,x,y,z)) in enumerate(sol_paths[a]):
+            for (t, (c, x, y, z)) in enumerate(sol_paths[a]):
                 if x != '-' and t < T-2:
                     if z < Z-1:
                         z2 = z
                         if c == 0:
-                            for (x2,y2) in [(x-1,y),(x+1,y),(x,y-1),(x,y+1)]:
-                                if 0 <= x2 and x2 < X and 0 <= y2 and y2 < Y:
-                                    if agent[t,c,x,y,z,'pickup',x2,y2,z2].X > 1e-4:
-                                        assert (a,t) not in sol_pickup
-                                        sol_pickup[a,t] = (x2,y2)
+                            for (x2, y2) in [(x-1, y), (x+1, y), (x, y-1), (x, y+1)]:
+                                if 0 <= x2 < X and 0 <= y2 < Y:
+                                    if agent[t, c, x, y, z, 'pickup', x2, y2, z2].X > 1e-4:
+                                        assert (a, t) not in sol_pickup
+                                        sol_pickup[a, t] = (x2, y2)
                         elif c == 1:
-                            for (x2,y2) in [(x-1,y),(x+1,y),(x,y-1),(x,y+1)]:
-                                if 0 <= x2 and x2 < X and 0 <= y2 and y2 < Y:
-                                    if agent[t,c,x,y,z,'delivery',x2,y2,z2].X > 1e-4:
-                                        assert (a,t) not in sol_delivery
-                                        sol_delivery[a,t] = (x2,y2)
+                            for (x2, y2) in [(x-1, y), (x+1, y), (x, y-1), (x, y+1)]:
+                                if 0 <= x2 < X and 0 <= y2 < Y:
+                                    if agent[t, c, x, y, z, 'delivery', x2, y2, z2].X > 1e-4:
+                                        assert (a, t) not in sol_delivery
+                                        sol_delivery[a, t] = (x2, y2)
 
         # Return
         if status == GRB.Status.TIME_LIMIT or status == GRB.Status.INTERRUPTED:
@@ -452,7 +452,7 @@ if __name__ == "__main__":
 
         # solve the MILP problem
         iter_T = makespan + 1
-        output = MILP(max_agents, iter_T, X, Y, Z, structure, time_limit, threads,
+        output = MILP(max_agents, iter_T, X, Y, Z, structure, time_limit, threads, 
                       sol_height, sol_paths, sol_pickup, sol_delivery)
         (status, iter_run_time) = output[:2]
         run_time += iter_run_time
@@ -469,21 +469,21 @@ if __name__ == "__main__":
             # Done
             break
 
-print('====================================================================================================')
-print(f'Status: {status}')
-print(f'Run time: {run_time:.2f} seconds')
-if status != 'Infeasible' and status != 'Unknown':
-    print(f'Sum-of-costs: {sum_of_costs}')
+    print('====================================================================================================')
+    print(f'Status: {status}')
+    print(f'Run time: {run_time:.2f} seconds')
+    if status != 'Infeasible' and status != 'Unknown':
+        print(f'Sum-of-costs: {sum_of_costs}')
 
-    T = len(sol_paths[0])
-    agents = 0
-    for t in range(T):
-        count = 0
-        for path in sol_paths:
-            count += (path[t][0] != '-')
-        if t > 0:
+        T = len(sol_paths[0])
+        agents = 0
+        for t in range(T):
+            count = 0
             for path in sol_paths:
-                count += (path[t-1][0] != '-' and path[t][0] == '-')
-        if count > agents:
-            agents = count
-    print(f'Agents: {agents}')
+                count += (path[t][0] != '-')
+            if t > 0:
+                for path in sol_paths:
+                    count += (path[t-1][0] != '-' and path[t][0] == '-')
+            if count > agents:
+                agents = count
+        print(f'Agents: {agents}')
