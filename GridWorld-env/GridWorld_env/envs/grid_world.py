@@ -3,6 +3,7 @@ import gymnasium as gym
 from gymnasium import spaces
 import numpy as np
 import matplotlib.pyplot as plt
+from target_loader import TargetLoader
 
 MAX_TIMESTEP = 300
 
@@ -10,7 +11,7 @@ MAX_TIMESTEP = 300
 class GridWorldEnv(gym.Env):
     neighbors = [[-1, 0, 0], [1, 0, 0], [0, -1, 0], [0, 1, 0], [0, 0, -1], [0, 0, 1]]
 
-    def __init__(self, dimension_size):
+    def __init__(self, dimension_size, path: str):
         self.observation_space = spaces.Box(low=0, high=255, shape=(64, 64, 3), dtype=np.uint8)
         self.dimension_size = dimension_size
         self.timestep_elapsed = 0
@@ -23,6 +24,8 @@ class GridWorldEnv(gym.Env):
         self.agent_pos_grid = self.obs[1]
         self.target = self.obs[2]
 
+        self._initialized = False
+        self.loader = TargetLoader(path)
         self.reset()
 
     def reset(self, seed=None, options=None):
@@ -60,6 +63,7 @@ class GridWorldEnv(gym.Env):
         pass
 
     def _init_obs(self):
+        """
         # agent_pos[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]] = 1
 
         # Hardcoding 4 columns, and 4 beams across the 4 columns. TO BE CHANGED TO BE MORE DYNAMIC AND USEABLE
@@ -81,6 +85,14 @@ class GridWorldEnv(gym.Env):
 
         for p in points:
             self.target[p[0], p[1], p[2]] = 1
+        """
+        if self._initialized:
+            return
+        targets = self.loader.load_all()
+        assert targets[0].shape[0] == self.dimension_size, (f"Dimension mismatch: Target: {targets[0].shape}, "
+                                                            f"Environment: {self.dimension_size}\n"
+                                                            "TODO: more flexibility")
+        np.copyto(self.obs[2], targets[0])
 
     def step(self, action):
         self.timestep_elapsed += 1
