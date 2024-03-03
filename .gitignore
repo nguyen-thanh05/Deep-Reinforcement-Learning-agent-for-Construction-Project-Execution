@@ -2,4 +2,4 @@
 venv
 */build/
 .idea
-./GridWorld-env/GridWorld_env.egg-info/
+GridWorld-env/GridWorld_env.egg-info/
