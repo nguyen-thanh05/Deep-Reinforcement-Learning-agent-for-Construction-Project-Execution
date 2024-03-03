@@ -305,25 +305,44 @@ class ScaffoldGridWorldEnv(gym.Env):
             [currentPos[0] + delta_x, currentPos[1] + delta_y, currentPos[2] + delta_z]
             for delta_x, delta_y, delta_z in [[-1, 0, 0], [1, 0, 0], [0, -1, 0], [0, 1, 0], [0, 0, -1], [0, 0, 1]]
         ]
+
+        scafold_direction = [
+            [currentPos[0] + delta_x, currentPos[1] + delta_y, currentPos[2] + delta_z]
+            for delta_x, delta_y, delta_z in [[-1, 0, -1], [1, 0, -1], [0, -1, -1], [0, 1, -1], [0, 0, -1]]
+            #                                  S down       N down        E dodwn      W down      down
+        ] 
+
+        for scafold in scafold_direction:
+            if scafold[0] < 0 or scafold[0] >= self.dimension_size or scafold[1] < 0 or scafold[1] >= self.dimension_size or scafold[2] < 0 or scafold[2] >= self.dimension_size:
+                scafold_direction.remove(scafold)  # remove invalid scafolds
         
         for neighbour in neighbour_direction:
             if neighbour[0] < 0 or neighbour[0] >= self.dimension_size or neighbour[1] < 0 or neighbour[1] >= self.dimension_size or neighbour[2] < 0 or neighbour[2] >= self.dimension_size:
                 neighbour_direction.remove(neighbour)  # remove invalid neighbours
         
+
         # Find if there is any supporting neighbour
-        supporting_neighbour = False
-        for neighbour in neighbour_direction:
-            if self.building_zone[neighbour[0], neighbour[1], neighbour[2]] == -1:
-                supporting_neighbour = True
-                break
+        supporting_neighbour = True
+        #for neighbour in neighbour_direction:
+        #    if self.building_zone[neighbour[0], neighbour[1], neighbour[2]] == -1:
+        #        supporting_neighbour = True
+        #        break
+        #
         
+        
+        for space in scafold_direction:
+            if not self._isInScaffoldingDomain(space) and not self._isInBlock(space):
+                supporting_neighbour = False
+        if len(scafold_direction) == 0:
+            supporting_neighbour = False
+
         # if the block is already on the ground then it is supporting
         if currentPos[2] == 0:
             supporting_neighbour = True
         
         # if there is block below then it is supporting
-        if currentPos[2] > 0 and self.building_zone[currentPos[0], currentPos[1], currentPos[2] - 1] == -1:
-            supporting_neighbour = True
+        #if currentPos[2] > 0 and self.building_zone[currentPos[0], currentPos[1], currentPos[2] - 1] == -1:
+        #    supporting_neighbour = True
         return supporting_neighbour
     
     def _isTerminal(self):
@@ -596,7 +615,47 @@ def placeBrianScalfold(env, agent_id):
     env.step((action_enum.PLACE_LEFT, agent_id))
     env.render()
 
+def testInvalidPlace(env, agent_id):
+    # place a block front of the agent
+    env.step((action_enum.PLACE_FORWARD, agent_id))
+    env.render()
+
+    # place a scaffold
+    env.step((action_enum.PLACE_SCAFOLD, agent_id))
+    env.render()
+
+    # move up 
+    env.step((action_enum.UP, agent_id))
+    env.render()
+
+    # place a block front of the agent
+    env.step((action_enum.PLACE_FORWARD, agent_id))
+    env.render()
     return
+
+def testWalkDown(env, agent_id):
+    # place a scaffold
+    env.step((action_enum.PLACE_SCAFOLD, agent_id))
+    env.render()
+
+    # move up 
+    env.step((action_enum.UP, agent_id))
+    env.render()
+
+    # place a scaffold
+    env.step((action_enum.PLACE_SCAFOLD, agent_id))
+    env.render()
+
+    # move up 
+    env.step((action_enum.UP, agent_id))
+    env.render()
+
+    # walk forward
+    env.step((action_enum.FORWARD, agent_id))
+    env.render()
+    return
+
+
 if __name__ == "__main__":
     # List of actions
     # 0: forward, 1: backward
@@ -609,7 +668,9 @@ if __name__ == "__main__":
     #testMove(env, 0)
     #testScafold(env, 0)
     #testPlaceBlock(env, 0)
-    placeBrianScalfold(env, 0)
+    #placeBrianScalfold(env, 0)
+    testWalkDown(env, 0)
+    #testInvalidPlace(env, 0)
     #env.step(0)
     #env.step(6)
     #env.step(4)
