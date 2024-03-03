@@ -4,7 +4,7 @@ from gymnasium import spaces
 import numpy as np
 import matplotlib.pyplot as plt
 
-MAX_TIMESTEP = 300
+MAX_TIMESTEP = 750
 
 
 class GridWorldEnv(gym.Env):
