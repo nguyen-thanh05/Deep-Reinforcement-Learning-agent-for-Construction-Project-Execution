@@ -7,6 +7,8 @@ GridWorld_env.egg-info/requires.txt
 GridWorld_env.egg-info/top_level.txt
 GridWorld_env/envs/__init__.py
 GridWorld_env/envs/grid_world.py
+GridWorld_env/envs/grid_world_old.py
+GridWorld_env/envs/test.py
 GridWorld_env/wrappers/__init__.py
 GridWorld_env/wrappers/clip_reward.py
 GridWorld_env/wrappers/discrete_actions.py
