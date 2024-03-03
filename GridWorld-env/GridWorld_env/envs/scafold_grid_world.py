@@ -61,7 +61,7 @@ class ScaffoldGridWorldEnv(gym.Env):
         7. agent can climb up and down an adjacent block(TODO)
 
     """
-    def __init__(self, dimension_size, num_agents=1):
+    def __init__(self, dimension_size, num_agents=1, debug=False):
         self.action_enum = Action
         self.observation_space = spaces.Box(low=0, high=255, shape=(64, 64, 3), dtype=np.uint8)
         self.dimension_size = dimension_size
@@ -71,7 +71,8 @@ class ScaffoldGridWorldEnv(gym.Env):
 
 
         self.reset()
-        self._placeAgentInBuildingZone()
+        if debug:
+            self._placeAgentInBuildingZone()
 
     
     # in multiagent, make sure only one agent is allowed to call this function(meta agent for example)
@@ -662,7 +663,7 @@ if __name__ == "__main__":
     # 2: left, 3: right
     # 4: up, 5: down
     # 6: place block
-    env = ScaffoldGridWorldEnv(4, 1)
+    env = ScaffoldGridWorldEnv(4, 1, debug=True)
 
     # test move
     #testMove(env, 0)
