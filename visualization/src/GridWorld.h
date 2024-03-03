@@ -27,8 +27,9 @@ class GridWorld {
 template<class T> using vec = std::vector<T>;
 
 public:
-    GridWorld(int _w, int _h, int _d, std::string path, bool save)
-            : w(_w), h(_h), d(_d), filePath(std::move(path)),
+    GridWorld(int _w, int _h, int _d, int _blockTypes, std::string path, bool save)
+            : w(_w), h(_h), d(_d), nBlockTypes(_blockTypes),
+              filePath(std::move(path)),
               grid(w, vec<vec<int>>(h, vec<int>(d, 0)))
     {
         if (!save) {
@@ -84,6 +85,27 @@ private:
 
     // Dimensions of grid
     int w, h, d;
+
+    // Number of block types in environment
+    int nBlockTypes;
+
+    constexpr static Color blockColors[13] = {
+            BLACK,
+        BLUE,
+        YELLOW,
+        ORANGE,
+        PINK,
+        RED,
+        MAROON,
+        GREEN,
+        LIME,
+        PURPLE,
+        VIOLET,
+        BEIGE,
+        BROWN,
+    };
+
+    int currBlockType = 1;
     vec<vec<vec<int>>> grid;
     float spacing = 1.0f;
     std::string filePath;

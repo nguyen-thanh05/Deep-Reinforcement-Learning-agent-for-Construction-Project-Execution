@@ -1,4 +1,5 @@
 *.pyc
 venv
-*/build
+*/build/
 .idea
+GridWorld-env/GridWorld_env.egg-info/
