@@ -88,6 +88,36 @@ class TestScaffoldEnv(unittest.TestCase):
         
         np.testing.assert_array_equal(placed, 1)  # made sure agent did placed
 
+    def test_climbDown(self):
+        # place a block forward
+        self.env.step((action_enum.PLACE_FORWARD, 0))
+
+        # place scafold
+        self.env.step((action_enum.PLACE_SCAFOLD, 0))
+
+        # move up
+        self.env.step((action_enum.UP, 0))
+
+
+        # place a scafold   
+        self.env.step((action_enum.PLACE_SCAFOLD, 0))
+
+        # move up
+        self.env.step((action_enum.UP, 0))
+
+        pos1 = self.env.AgentsPos[0].copy()
+
+        # move forward
+        self.env.step((action_enum.FORWARD, 0))
+
+        pos2 = self.env.AgentsPos[0].copy()  # position of the agent after moving forward
+
+        expectedPos = pos1.copy()
+        expectedPos[0] += 1
+        expectedPos[2] -= 1
+
+        np.testing.assert_array_equal(expectedPos, pos2)
+
 if __name__ == '__main__':
     unittest.main()
 
