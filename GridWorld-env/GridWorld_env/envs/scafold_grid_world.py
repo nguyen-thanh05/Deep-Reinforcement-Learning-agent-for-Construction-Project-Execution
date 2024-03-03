@@ -28,6 +28,8 @@ class Action:
     PLACE_LEFT = 10
     PLACE_RIGHT = 11
 
+action_enum = Action
+
 
 class ScaffoldGridWorldEnv(gym.Env): 
     """
@@ -69,6 +71,7 @@ class ScaffoldGridWorldEnv(gym.Env):
 
 
         self.reset()
+        self._placeAgentInBuildingZone()
 
     
     # in multiagent, make sure only one agent is allowed to call this function(meta agent for example)
@@ -78,7 +81,6 @@ class ScaffoldGridWorldEnv(gym.Env):
 
         self.AgentsPos = np.zeros((self.num_agents, 3), dtype=int)
 
-        
         random_start_pos = np.zeros(3, dtype=int)
         for i in range(self.num_agents):
             random_start_pos[0] = np.random.randint(0, self.dimension_size)
@@ -121,6 +123,11 @@ class ScaffoldGridWorldEnv(gym.Env):
         self.building_zone[self.dimension_size // 2, self.dimension_size // 2, 0] = -1
         return
 
+    def _placeAgentInBuildingZone(self):
+        # place some agent in building zone for testing
+        self.AgentsPos[0] = [0, self.dimension_size // 2, 0]
+        return
+
     def _init_target(self):
         self.target = np.zeros((self.dimension_size, self.dimension_size, self.dimension_size), dtype=int)
         
@@ -148,18 +155,23 @@ class ScaffoldGridWorldEnv(gym.Env):
     def _tryMove(self, action, agent_id):
         if (action in [0, 1, 2, 3, 4, 5]):
             new_pos = self.AgentsPos[agent_id].copy()
-            if (action == 0):
+            if (action == 0):  # move forward
                 new_pos[0] += 1
-            elif (action == 1):
+            elif (action == 1):  # move backward
                 new_pos[0] -= 1
-            elif (action == 2):
+            elif (action == 2):  # move left
                 new_pos[1] -= 1
-            elif (action == 3):
+            elif (action == 3):  # move right
                 new_pos[1] += 1
-            elif (action == 4):
+            elif (action == 4):  # move up
                 new_pos[2] += 1
-            elif (action == 5):
+            elif (action == 5):  # move down
                 new_pos[2] -= 1
+
+            if (action in [0, 1, 2, 3]):
+                if (self._canClimbDown(new_pos)):
+                    new_pos[2] -= 1
+                    return new_pos
             return new_pos
 
         return None
@@ -182,6 +194,35 @@ class ScaffoldGridWorldEnv(gym.Env):
     def _thereIsAgent(self, pos):
         if (self.building_zone[pos[0], pos[1], pos[2]] == 1):
             return True
+        return False
+
+    def _canClimbDown(self, pos):
+        # pos is the new position we ended up after moving
+        assert(self.building_zone[pos[0], pos[1], pos[2] - 1] == 0)  # there is no block below
+
+        
+        """
+            (us)    pos[2]
+        ----
+            |       pos[2] - 1
+            ----
+                |   pos[2] - 2
+                ----
+
+        """
+        if (pos[2] >= 2  and self._isInBlock([pos[0], pos[1], pos[2] - 2])):
+            # there is a block below
+            return True
+
+        """
+             (us)
+        ----
+            |
+            ----
+        """
+        if (pos[2] == 1):  # we are 1 block above the ground
+            return True
+
         return False
 
     """
@@ -249,9 +290,11 @@ class ScaffoldGridWorldEnv(gym.Env):
             if (self._isInNothing(place_pos)):
                 valid = True
         return valid 
-    
+
+
     """
-    if there exist supporting neighborblock around currentPos
+    if there exist supporting neighborblock around currentPos, 
+    SUPORTING IF THERE ARE 4 SCAFFOLD 
 
     arg: 
        currentPos: 3-tuple (x, y, z), the location we want to place the block
@@ -346,7 +389,6 @@ class ScaffoldGridWorldEnv(gym.Env):
                 isValid = True
             else:  # case: invalid place, so agent just stay here
                 pass
-
             obs = self.get_obs(agent_id)
             self.mutex.release()
             if not isValid: R = -1
@@ -355,6 +397,7 @@ class ScaffoldGridWorldEnv(gym.Env):
                 return obs, R, Terminated, Truncated, {}
             else:
                 return obs, R, Terminated, Truncated, {}
+
         elif (action == self.action_enum.REMOVE_SCAFOLD):
             R = -0.5
             Terminated = False
@@ -383,7 +426,7 @@ class ScaffoldGridWorldEnv(gym.Env):
             Terminated = False
             Truncated = False
             isValid = False
-            if (self._isValidPlace(action, current_pos, agent_id)):
+            if (self._isValidPlace(action, current_pos, agent_id)):  # for no scaffold place
                 place_pos = None
                 if action == self.action_enum.PLACE_FORWARD:
                     place_pos = current_pos + [1, 0, 0]
@@ -500,6 +543,59 @@ def testPlaceBlock(env, agent_id):
     env.render()
     return
 
+def placeBrianScalfold(env, agent_id):
+    # place a block front of the agent
+    env.step((action_enum.PLACE_FORWARD, agent_id))
+    env.render()
+
+    # place a scaffold 
+    env.step((action_enum.PLACE_SCAFOLD, agent_id))
+    env.render()
+
+    # walk left
+    env.step((action_enum.LEFT, agent_id))
+    env.render()
+
+    # walk forward
+    env.step((action_enum.FORWARD, agent_id))
+    env.render()
+
+    # place a scaffold
+    env.step((action_enum.PLACE_SCAFOLD, agent_id))
+    env.render()
+
+    # walk forward
+    env.step((action_enum.FORWARD, agent_id))
+    env.render()
+
+    # walk right
+    env.step((action_enum.RIGHT, agent_id))
+    env.render()
+
+    # place a scafold
+    env.step((action_enum.PLACE_SCAFOLD, agent_id))
+    env.render()
+
+    # walk right 
+    env.step((action_enum.RIGHT, agent_id))
+    env.render()
+
+    # walk backward
+    env.step((action_enum.BACKWARD, agent_id))
+    env.render()
+
+    # place a scafold
+    env.step((action_enum.PLACE_SCAFOLD, agent_id))
+    env.render()
+
+    # climb up
+    env.step((action_enum.UP, agent_id))
+    env.render()
+
+    # place a block to the left
+    env.step((action_enum.PLACE_LEFT, agent_id))
+    env.render()
+
     return
 if __name__ == "__main__":
     # List of actions
@@ -512,7 +608,8 @@ if __name__ == "__main__":
     # test move
     #testMove(env, 0)
     #testScafold(env, 0)
-    testPlaceBlock(env, 0)
+    #testPlaceBlock(env, 0)
+    placeBrianScalfold(env, 0)
     #env.step(0)
     #env.step(6)
     #env.step(4)
