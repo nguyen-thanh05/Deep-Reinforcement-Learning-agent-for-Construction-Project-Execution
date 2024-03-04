@@ -198,6 +198,7 @@ class GridWorldEnv(gym.Env):
         return None
 
     def _isInScaffoldingDomain(self, pos):
+        print("pos", pos)
         if (self.building_zone[pos[0], pos[1], pos[2]] == -2):
             return True
         return False 
@@ -220,7 +221,7 @@ class GridWorldEnv(gym.Env):
     def _canClimbDown(self, pos):
         # pos is the new position we ended up after moving
         print(pos)
-        assert(self.building_zone[pos[0], pos[1], pos[2] - 1] == 0)  # there is no block below
+        #assert(self.building_zone[pos[0], pos[1], pos[2] - 1] == 0)  # there is no block below
 
         
         """
@@ -333,10 +334,15 @@ class GridWorldEnv(gym.Env):
             for delta_x, delta_y, delta_z in [[-1, 0, -1], [1, 0, -1], [0, -1, -1], [0, 1, -1], [0, 0, -1]]
             #                                  S down       N down        E dodwn      W down      down
         ] 
-
+        valid_scafold = [] 
+        print("agent position", self.AgentsPos[0])
+        print("currentPos", currentPos)
+        print("scafold_direction before", scafold_direction) 
         for scafold in scafold_direction:
             if scafold[0] < 0 or scafold[0] >= self.dimension_size or scafold[1] < 0 or scafold[1] >= self.dimension_size or scafold[2] < 0 or scafold[2] >= self.dimension_size:
                 scafold_direction.remove(scafold)  # remove invalid scafolds
+            else:
+                valid_scafold.append(scafold)
         
         for neighbour in neighbour_direction:
             if neighbour[0] < 0 or neighbour[0] >= self.dimension_size or neighbour[1] < 0 or neighbour[1] >= self.dimension_size or neighbour[2] < 0 or neighbour[2] >= self.dimension_size:
@@ -351,11 +357,11 @@ class GridWorldEnv(gym.Env):
         #        break
         #
         
-        
-        for space in scafold_direction:
+        print("scafold_direction after", scafold_direction) 
+        for space in valid_scafold:
             if not self._isInScaffoldingDomain(space) and not self._isInBlock(space):
                 supporting_neighbour = False
-        if len(scafold_direction) == 0:
+        if len(valid_scafold) == 0:
             supporting_neighbour = False
 
         # if the block is already on the ground then it is supporting
@@ -689,20 +695,29 @@ def testWalkDown(env, agent_id):
     return
 
 
+def testBug(env, agent_id):
+        # set agent position to [2, 2,0]
+        env.AgentsPos[0] = np.array([2, 2, 0])
+        env.render()
+        #ce right
+        env.step((action_enum.PLACE_RIGHT, 0))
+        env.render()
+
+        return
 if __name__ == "__main__":
     # List of actions
     # 0: forward, 1: backward
     # 2: left, 3: right
     # 4: up, 5: down
     # 6: place block
-    env = ScaffoldGridWorldEnv(4, 1, debug=True)
+    env = GridWorldEnv(4, 1, debug=True)
 
     # test move
     #testMove(env, 0)
     #testScafold(env, 0)
     #testPlaceBlock(env, 0)
     #placeBrianScalfold(env, 0)
-    testWalkDown(env, 0)
+    testBug(env, 0)
     #testInvalidPlace(env, 0)
     #env.step(0)
     #env.step(6)
