@@ -175,7 +175,6 @@ class GridWorldEnv(gym.Env):
     def _tryMove(self, action, agent_id):
         if (action in [0, 1, 2, 3, 4, 5]):
             new_pos = self.AgentsPos[agent_id].copy()
-            print("new_pos", new_pos)
             if (action == 0):  # move forward
                 new_pos[0] += 1
             elif (action == 1):  # move backward
@@ -198,7 +197,6 @@ class GridWorldEnv(gym.Env):
         return None
 
     def _isInScaffoldingDomain(self, pos):
-        print("pos", pos)
         if (self.building_zone[pos[0], pos[1], pos[2]] == -2):
             return True
         return False 
@@ -210,7 +208,6 @@ class GridWorldEnv(gym.Env):
     def _isInNothing(self, pos):
         if (self.building_zone[pos[0], pos[1], pos[2]] == 0):
             return True
-        print("not empty, value was ", self.building_zone[pos[0], pos[1], pos[2]])
         return False
     # there is an agent in the position 
     def _thereIsAgent(self, pos):
@@ -227,7 +224,6 @@ class GridWorldEnv(gym.Env):
         if (self._isOutOfBound(pos)):
             return False
         # pos is the new position we ended up after moving
-        print(pos)
         #assert(self.building_zone[pos[0], pos[1], pos[2] - 1] == 0)  # there is no block below
         
 
@@ -294,7 +290,6 @@ class GridWorldEnv(gym.Env):
     
     """
     def _isValidPlace(self, action, current_pos, agent_id):
-        print("in valid place, action is ", action)
         if (action == self.action_enum.PLACE_SCAFOLD):
             if (not self._isInScaffoldingDomain(current_pos) and not self._isInBlock(current_pos)):  # case: there is not
                 return True 
@@ -547,7 +542,6 @@ class GridWorldEnv(gym.Env):
         colors[building_zone_cube] = '#7A88CCC0'
         colors[agent_position_cube] = '#FFD65DC0'
         colors[scaffold_cube] = 'pink'
-        #print(colors)
 
         ax = fig.add_subplot(1, 2, 1, projection='3d')
         ax.voxels(final_rendering_cube, facecolors=colors, edgecolor='k')
