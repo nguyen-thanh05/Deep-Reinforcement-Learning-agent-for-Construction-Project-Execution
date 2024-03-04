@@ -18,7 +18,7 @@ void GridWorld::Render() {
     switch (action) {
         case Action::NONE: break;
         case Action::PLACE:
-            AddBlock(agentPos.x, agentPos.y, agentPos.z, 1);
+            AddBlock(agentPos.x, agentPos.y, agentPos.z, currBlockType);
             break;
         case Action::REMOVE:
             RemoveBlock(agentPos.x, agentPos.y, agentPos.z);
@@ -36,7 +36,23 @@ void GridWorld::Render() {
         DrawBlocks();
 
     EndMode3D();
-    DrawFPS(10, 10);
+
+    DrawRectangle( 10, 10, 240, 150, Fade(SKYBLUE, 0.5f));
+    DrawRectangleLines( 10, 10, 240, 150, BLUE);
+
+    DrawText(IsCursorHidden() ? "Mode: Free camera - right click to switch"
+        : "Mode: Fixed Camera - right click to switch", 20, 20, 10, BLACK);
+    DrawText("WASD: Horizontal move", 40, 40, 10, DARKGRAY);
+    DrawText("QE: Vertical move", 40, 60, 10, DARKGRAY);
+    DrawText("X: Delete block", 40, 80, 10, DARKGRAY);
+    DrawText("SPACE: Place block", 40, 100, 10, DARKGRAY);
+    DrawText("ENTER: Save to file", 40, 120, 10, DARKGRAY);
+
+    DrawRectangle( 900, 10, 70, 70, Fade(blockColors[currBlockType], 0.5f));
+    DrawRectangleLines( 900, 10, 70, 70, blockColors[currBlockType]);
+    DrawText("Block type", 910, 20, 10, DARKGRAY);
+    DrawText(std::to_string(currBlockType).c_str(), 930, 35, 20, DARKGRAY);
+
     EndDrawing();
 }
 
@@ -84,7 +100,7 @@ void GridWorld::DrawPlanes() const {
 }
 
 bool GridWorld::AddBlock(int x, int y, int z, int blockType) {
-    if (x >= h || y >= w || z >= d || grid[x][y][z] != 0 || !QueryPlacement(x, y, z))
+    if (x >= h || y >= w || z >= d || grid[x][y][z] == blockType || !QueryPlacement(x, y, z))
         return false;
 
     grid[x][y][z] = blockType;
@@ -141,8 +157,10 @@ void GridWorld::DrawBlocks() const {
                     float posZ = static_cast<float>(k) * spacing + 0.5f;
 
                     DrawCube({posX, posY, posZ},
-                             spacing, spacing, spacing, BLUE);
-                    DrawCubeWires({posX, posY, posZ}, spacing, spacing, spacing, RED);
+                             spacing, spacing, spacing,
+                             Fade(blockColors[grid[i][j][k]], 0.5f));
+                    DrawCubeWires({posX, posY, posZ},
+                                  spacing, spacing, spacing, RED);
                 }
             }
         }
@@ -209,6 +227,14 @@ Action GridWorld::Step() {
     // Do not allow save file if nothing changes
     static bool enterDelayed = false;
 
+    // C-style enums lmao :) hope raylib doesn't change this.
+    for (int i = 1; i <= nBlockTypes; i++) {
+        if (IsKeyPressed(i + KEY_ZERO)) {
+            currBlockType = i;
+            return Action::NONE;
+        }
+    }
+
     if (IsKeyPressed(KEY_ENTER)) {
         if (enterDelayed) return Action::NONE;
         enterDelayed = true;
@@ -217,9 +243,6 @@ Action GridWorld::Step() {
         return Action::NONE;
     }
 
-    // A little hack to avoid setting enterDelayed = true in every if statement
-    bool prevDelayedStatus = enterDelayed;
-    enterDelayed = false;
     if (IsCursorHidden()) return Action::NONE;
 
     if (IsKeyPressed(KEY_W)) return Action::FORWARD;
@@ -229,10 +252,15 @@ Action GridWorld::Step() {
     if (IsKeyPressed(KEY_E)) return Action::UP;
     if (IsKeyPressed(KEY_Q)) return Action::DOWN;
 
-    if (IsKeyPressed(KEY_SPACE)) return Action::PLACE;
-    if (IsKeyPressed(KEY_X)) return Action::REMOVE;
+    if (IsKeyPressed(KEY_SPACE)) {
+        enterDelayed = false;
+        return Action::PLACE;
+    }
+    if (IsKeyPressed(KEY_X)) {
+        enterDelayed = false;
+        return Action::REMOVE;
+    }
 
-    enterDelayed = prevDelayedStatus;
     return Action::NONE;
 }
 
