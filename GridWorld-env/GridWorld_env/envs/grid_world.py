@@ -4,7 +4,7 @@ from gymnasium import spaces
 import numpy as np
 import matplotlib.pyplot as plt
 from target_loader import TargetLoader
-
+import random
 MAX_TIMESTEP = 300
 
 
@@ -23,6 +23,7 @@ class GridWorldEnv(gym.Env):
         self.building_zone = self.obs[0]
         self.agent_pos_grid = self.obs[1]
         self.target = self.obs[2]
+        self.all_targets = None
 
         self._initialized = False
         self.loader = TargetLoader(path)
@@ -48,6 +49,8 @@ class GridWorldEnv(gym.Env):
         self.observation_space = spaces.Box(low=0, high=1, shape=(3, self.dimension_size, self.dimension_size, self.dimension_size), dtype=int)
 
         self.timestep_elapsed = 0
+
+        np.copyto(self.obs[2], random.choice(self.all_targets))
         return self.get_obs(), {}
 
     def get_obs(self):
@@ -88,11 +91,16 @@ class GridWorldEnv(gym.Env):
         """
         if self._initialized:
             return
-        targets = self.loader.load_all()
-        assert targets[0].shape[0] == self.dimension_size, (f"Dimension mismatch: Target: {targets[0].shape}, "
-                                                            f"Environment: {self.dimension_size}\n"
-                                                            "TODO: more flexibility")
-        np.copyto(self.obs[2], targets[0])
+        self.all_targets = self.loader.load_all()
+
+        assert len(self.all_targets) > 0, "No target found\n"
+        for i in range(len(self.all_targets)):
+            assert self.all_targets[i].shape[0] == self.dimension_size, \
+                (f"Dimension mismatch: Target: {self.all_targets[i].shape}, "
+                 f"Environment: {self.dimension_size}\n"
+                 "TODO: more flexibility")
+        # np.copyto(self.obs[2], random.choice(self.all_targets))
+        self._initialized = True
 
     def step(self, action):
         self.timestep_elapsed += 1
@@ -159,12 +167,18 @@ class GridWorldEnv(gym.Env):
                 difference = self.target - self.building_zone
                 difference = np.isin(difference, 1)
                 if not np.any(difference):
+                # if not np.any(self.target == self.building_zone + 1):
                     return self.get_obs(), 0, True, False, {}
                 else:
                     if self.building_zone[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]] == self.target[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]]:
                         return self.get_obs(), 1, False, self.timestep_elapsed > MAX_TIMESTEP, {}
                     else:
                         return self.get_obs(), -1.5, False, self.timestep_elapsed > MAX_TIMESTEP, {}
+                # intersection = (self.target == self.building_zone) & (self.target > 0)
+                # union = (self.target != 0) | (self.building_zone != 0)
+                # iou = np.sum(intersection) / np.sum(union)
+                # shifted_iou = iou * 2 - 1
+                # return self.get_obs(), float(shifted_iou), np.all(self.target >= self.building_zone), self.timestep_elapsed - MAX_TIMESTEP, None
             elif duplicate_block or not supporting_neighbour:
                 return self.get_obs(), -3.5, False, self.timestep_elapsed > MAX_TIMESTEP, {}
 
