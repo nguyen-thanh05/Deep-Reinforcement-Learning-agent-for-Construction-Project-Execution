@@ -223,7 +223,6 @@ class GridWorldEnv(gym.Env):
         print(pos)
         #assert(self.building_zone[pos[0], pos[1], pos[2] - 1] == 0)  # there is no block below
 
-        
         """
             (us)    pos[2]
         ----
@@ -233,17 +232,17 @@ class GridWorldEnv(gym.Env):
                 ----
 
         """
-        if (pos[2] >= 2  and self._isInBlock([pos[0], pos[1], pos[2] - 2])):
-            # there is a block below
+        
+        if (pos[2] >= 2 and self._isInNothing([pos[0], pos[1], pos[2] - 1]) and self._isInBlock([pos[0], pos[1], pos[2] - 2])):
             return True
-
+         
         """
              (us)
         ----
             |
             ----
         """
-        if (pos[2] == 1):  # we are 1 block above the ground
+        if (pos[2] == 1 and self._isInNothing([pos[0], pos[1], pos[2] - 1])):  # we are 1 block above the ground
             return True
 
         return False
