@@ -218,10 +218,19 @@ class GridWorldEnv(gym.Env):
             return True
         return False
 
+    def _isOutOfBound(self, pos):
+        if (pos[0] < 0 or pos[0] >= self.dimension_size or pos[1] < 0 or pos[1] >= self.dimension_size or pos[2] < 0 or pos[2] >= self.dimension_size):
+            return True
+        return False
+
     def _canClimbDown(self, pos):
+        if (self._isOutOfBound(pos)):
+            return False
         # pos is the new position we ended up after moving
         print(pos)
         #assert(self.building_zone[pos[0], pos[1], pos[2] - 1] == 0)  # there is no block below
+        
+
 
         """
             (us)    pos[2]
@@ -285,9 +294,11 @@ class GridWorldEnv(gym.Env):
     
     """
     def _isValidPlace(self, action, current_pos, agent_id):
+        print("in valid place, action is ", action)
         if (action == self.action_enum.PLACE_SCAFOLD):
             if (not self._isInScaffoldingDomain(current_pos) and not self._isInBlock(current_pos)):  # case: there is not
                 return True 
+            return False
 
         # case: place block
         assert (action in [8, 9, 10, 11])
@@ -334,9 +345,6 @@ class GridWorldEnv(gym.Env):
             #                                  S down       N down        E dodwn      W down      down
         ] 
         valid_scafold = [] 
-        print("agent position", self.AgentsPos[0])
-        print("currentPos", currentPos)
-        print("scafold_direction before", scafold_direction) 
         for scafold in scafold_direction:
             if scafold[0] < 0 or scafold[0] >= self.dimension_size or scafold[1] < 0 or scafold[1] >= self.dimension_size or scafold[2] < 0 or scafold[2] >= self.dimension_size:
                 scafold_direction.remove(scafold)  # remove invalid scafolds
@@ -355,8 +363,6 @@ class GridWorldEnv(gym.Env):
         #        supporting_neighbour = True
         #        break
         #
-        
-        print("scafold_direction after", scafold_direction) 
         for space in valid_scafold:
             if not self._isInScaffoldingDomain(space) and not self._isInBlock(space):
                 supporting_neighbour = False
