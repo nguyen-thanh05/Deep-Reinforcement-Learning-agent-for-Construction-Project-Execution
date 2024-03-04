@@ -1,18 +1,14 @@
-
-from math import ceil
-from turtle import onclick
 import gymnasium as gym
 from gymnasium import spaces
 import numpy as np
 import matplotlib.pyplot as plt
-import torch
 MAX_TIMESTEP = 500
 
 
 #import Lock
 from threading import Lock
 # import enum
-from enum import Enum
+
 
 class Action:
     FORWARD = 0
@@ -55,10 +51,10 @@ class ScaffoldGridWorldEnv(gym.Env):
         current Rule:
         1. agent can move in 4 direction (N, S, E, W), and 2 direction in the z axis (up, down) if agent in scaffolding domain
         2. agent cannot move through block
-        4. agent can climb down a block if agent is 1 block above the ground, otherwise agent will die(TODO)
+        4. agent can climb down a block if agent is 1 block above the ground, otherwise agent will die(TODO) OR a very big negative reward and let it continue training to be more efficient
         5. agent can place scafold block directly where it is standing.
         6. agent cannot remove scafold block if there is a scafolding block above it or another agent above the scafold block
-        7. agent can climb up and down an adjacent block(TODO)
+        7. agent can climb up and down an adjacent block(TODO) NOTE: Do we even need this?
 
     """
     def __init__(self, dimension_size, num_agents=1, debug=False):
@@ -66,11 +62,34 @@ class ScaffoldGridWorldEnv(gym.Env):
         self.observation_space = spaces.Box(low=0, high=255, shape=(64, 64, 3), dtype=np.uint8)
         self.dimension_size = dimension_size
         self.timestep_elapsed = 0
+        
+        
+        self.record_sequence = []
+        # 1 for building zone, 1 for target, 1 for each agent position, and 1 for all agents position
+        # Order: building zone, agent position(s), target, all other agents position
+        if num_agents == 1:
+            self.obs = np.zeros((3 + 1, self.dimension_size, self.dimension_size, self.dimension_size), 
+                                dtype=int)
+        else:
+            self.obs = np.zeros((1 + num_agents + 1 + 1, self.dimension_size, self.dimension_size, self.dimension_size), 
+                                dtype=int)
+
+        
+        self.building_zone = self.obs[0]
+        
+        self.agent_pos_grid = []
+        for i in range(1, num_agents + 1):
+            self.agent_pos_grid.append(self.obs[i])
+        
+        self.target = self.obs[-2]
+        self.all_agent_position = self.obs[-1]
+        
         self.mutex = Lock()
         self.num_agents = num_agents
 
 
         self.reset()
+        
         if debug:
             self._placeAgentInBuildingZone()
 
