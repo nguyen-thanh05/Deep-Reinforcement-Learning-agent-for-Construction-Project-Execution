@@ -1,6 +1,6 @@
 import unittest
-from scafold_grid_world import ScaffoldGridWorldEnv
 import numpy as np
+from grid_world import GridWorldEnv
 
 
 
@@ -22,7 +22,7 @@ action_enum = Action
 
 class TestScaffoldEnv(unittest.TestCase):
     def setUp(self):
-        self.env = ScaffoldGridWorldEnv(4, 1, debug=True)
+        self.env = GridWorldEnv(4, 1, debug=True)
         self.startPos = self.env.AgentsPos[0].copy()
 
     def test_invalidPlace(self):
@@ -117,6 +117,14 @@ class TestScaffoldEnv(unittest.TestCase):
         expectedPos[2] -= 1
 
         np.testing.assert_array_equal(expectedPos, pos2)
+
+    def test_bug(self):
+        # set agent position to [2, 2,0]
+        self.env.AgentsPos[0] = np.array([2, 2, 0])
+        # place right
+        self.env.step((action_enum.PLACE_RIGHT, 0))
+
+        self.assertTrue(1)
 
 if __name__ == '__main__':
     unittest.main()
