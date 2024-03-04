@@ -38,7 +38,7 @@ class ScaffoldGridWorldEnv(gym.Env):
         0: empty
         -1: block
         -2: scaffold
-        1: agents/ or should 
+        1: agents/ or should ??? if agent is a ghost and can move thru?
 
         ACTION:
         0: forward, 1: backward, 2: left, 3: right                         [move]
@@ -391,6 +391,17 @@ class ScaffoldGridWorldEnv(gym.Env):
         6: place scaffold at current position                              [place block]
         7: remove scaffold at current position                             [remove block]
         8-11: place block at the 4 adjacent position of the agent          [place block]
+        
+        
+        REWARD STRUCTURE
+        move: -0.5
+        place scaffold: -0.5 if valid, -1 if invalid
+        remove scaffold: -0.5 if valid, -1 if invalid
+        place block: -0.5 if valid, -2.5 if invalid, +0.5 if valid and on the target
+        
+        TODO: Big positive when the structure is done. Small positive reward for each scaffold removed after the structure
+        is finished. 
+        
         """
         current_pos = self.AgentsPos[agent_id]
         new_pos = self._tryMove(action, agent_id)
