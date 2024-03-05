@@ -19,10 +19,7 @@ class Action:
     DOWN = 5
     PLACE_SCAFOLD = 6
     REMOVE_SCAFOLD = 7
-    PLACE_FORWARD = 8
-    PLACE_BACKWARD = 9
-    PLACE_LEFT = 10
-    PLACE_RIGHT = 11
+    PLACE_BLOCK = 8
 
 action_enum = Action
 
@@ -449,7 +446,12 @@ class GridWorldEnv(gym.Env):
         """
         current_pos = self.AgentsPos[agent_id]
 
-        if (action in [0, 1, 2, 3, 4, 5]):  # move action
+        if (action in [self.action_enum.FORWARD, 
+                       self.action_enum.BACKWARD,
+                       self.action_enum.RIGHT,
+                       self.action_enum.LEFT,
+                       self.action_enum.UP,
+                       self.action_enum.DOWN]):  # move action
             R = -0.5
             terminated = False
             truncated = False
@@ -477,7 +479,7 @@ class GridWorldEnv(gym.Env):
             is_valid = False
             # agent can only place scaffold if there is nothing in current position
             if (self._isScaffoldValid(current_pos)):
-                self.building_zone[current_pos[0], current_pos[1], current_pos[2]] = -2  # place scaffold block
+                self.building_zone[current_pos[0], current_pos[1], current_pos[2]] = GridWorldEnv.SCAFFOLD  # place scaffold block
                 is_valid = True
 
             obs = self.get_obs(agent_id)
