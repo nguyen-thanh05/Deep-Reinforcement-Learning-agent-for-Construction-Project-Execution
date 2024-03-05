@@ -2,7 +2,7 @@ import gymnasium as gym
 from gymnasium import spaces
 import numpy as np
 import matplotlib.pyplot as plt
-MAX_TIMESTEP = 500
+MAX_TIMESTEP = 800
 
 
 #import Lock
@@ -383,8 +383,9 @@ class GridWorldEnv(gym.Env):
         #            if (self.target[i, j, k] == -1 and self.building_zone[i, j, k] != -1):
         #                return False
         # do a 
+        
         difference = self.target - self.building_zone
-        difference = np.isin(difference, 1)
+        difference = np.isin(difference, -1)
         if not np.any(difference):
             return True
         return False
@@ -442,7 +443,7 @@ class GridWorldEnv(gym.Env):
                 return obs, R, Terminated, Truncated, {}
 
         elif (action == self.action_enum.PLACE_SCAFOLD):
-            R = -0.5
+            R = -1
             Terminated = False
             Truncated = False
             isValid = False
@@ -454,7 +455,7 @@ class GridWorldEnv(gym.Env):
                 pass
             obs = self.get_obs(agent_id)
 #            self.mutex.release()
-            if not isValid: R = -1
+            if not isValid: R = -5
             if self.timestep_elapsed > MAX_TIMESTEP:
                 Truncated = True
                 return obs, R, Terminated, Truncated, {}
@@ -462,7 +463,7 @@ class GridWorldEnv(gym.Env):
                 return obs, R, Terminated, Truncated, {}
 
         elif (action == self.action_enum.REMOVE_SCAFOLD):
-            R = -0.5
+            R = -0.25
             Terminated = False
             Truncated = False
             isValid = False
@@ -489,7 +490,7 @@ class GridWorldEnv(gym.Env):
             else:
                 return obs, R, Terminated, Truncated, {}
         elif (action in [8, 9, 10, 11]):  # place command
-            R = -0.5
+            R = -1.5
             Terminated = False
             Truncated = False
             isValid = False
@@ -511,18 +512,18 @@ class GridWorldEnv(gym.Env):
                 # rightTrack = 1 if agent placed block in the right position
                 rightTrack = self.building_zone[place_pos[0], place_pos[1], place_pos[2]] == self.target[place_pos[0], place_pos[1], place_pos[2]]
                 if rightTrack:
-                    R = 0.5
+                    R = -0.1
                 else:
-                    R = -1
+                    R = -1.5
             else:  # invalid placement
-                R = -2.5
+                R = -5
 
             obs = self.get_obs(agent_id)
             #self.mutex.release()
             # check if structure is complete
             if (isValid and self._isTerminal()):  #  only do terminal check if we placed a block to save computation
                 Terminated = True
-                R = 0
+                R = 100
             if self.timestep_elapsed > MAX_TIMESTEP:
                 Truncated = True
                 return obs, R, Terminated, Truncated, {}
@@ -555,7 +556,7 @@ class GridWorldEnv(gym.Env):
         ax = fig.add_subplot(1, 2, 1, projection='3d')
         ax.voxels(final_rendering_cube, facecolors=colors, edgecolor='k')
 
-        target_cube = self.target == 1
+        target_cube = self.target == -1
         # set the colors of each object
         colors = np.empty(target_cube.shape, dtype=object)
         colors[target_cube] = '#7A88CCC0'
