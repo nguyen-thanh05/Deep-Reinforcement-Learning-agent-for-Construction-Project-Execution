@@ -57,6 +57,12 @@ class GridWorldEnv(gym.Env):
         7. agent can climb up and down an adjacent block(TODO) NOTE: Do we even need this?
 
     """
+    neighbors = [[-1, 0, 0], [1, 0, 0], [0, -1, 0], [0, 1, 0], [0, 0, -1], [0, 0, 1]]
+    SCAFFOLD = -1
+    BLOCK = 1
+    EMPTY = 0
+    
+    
     def __init__(self, dimension_size, num_agents=1, debug=False):
         self.action_enum = Action
         self.observation_space = spaces.Box(low=0, high=255, shape=(64, 64, 3), dtype=np.uint8)
@@ -173,28 +179,27 @@ class GridWorldEnv(gym.Env):
             self.target[p[0], p[1], p[2]] = -1  # -1 is block
 
     def _tryMove(self, action, agent_id):
-        if (action in [0, 1, 2, 3, 4, 5]):
-            new_pos = self.AgentsPos[agent_id].copy()
-            if (action == 0):  # move forward
-                new_pos[0] += 1
-            elif (action == 1):  # move backward
-                new_pos[0] -= 1
-            elif (action == 2):  # move left
-                new_pos[1] -= 1
-            elif (action == 3):  # move right
-                new_pos[1] += 1
-            elif (action == 4):  # move up
-                new_pos[2] += 1
-            elif (action == 5):  # move down
+        #if (action in [0, 1, 2, 3, 4, 5]):
+        new_pos = self.AgentsPos[agent_id].copy()
+        if (action == 0):  # move forward
+            new_pos[0] += 1
+        elif (action == 1):  # move backward
+            new_pos[0] -= 1
+        elif (action == 2):  # move left
+            new_pos[1] -= 1
+        elif (action == 3):  # move right
+            new_pos[1] += 1
+        elif (action == 4):  # move up
+            new_pos[2] += 1
+        elif (action == 5):  # move down
+            new_pos[2] -= 1
+        """
+        if (action in [0, 1, 2, 3]):
+            if (self._canClimbDown(new_pos)):
                 new_pos[2] -= 1
+                return new_pos"""
+        return new_pos
 
-            if (action in [0, 1, 2, 3]):
-                if (self._canClimbDown(new_pos)):
-                    new_pos[2] -= 1
-                    return new_pos
-            return new_pos
-
-        return None
 
     def _isInScaffoldingDomain(self, pos):
         if (self.building_zone[pos[0], pos[1], pos[2]] == -2):
@@ -260,12 +265,12 @@ class GridWorldEnv(gym.Env):
         if (new_pos[0] < 0 or new_pos[0] >= self.dimension_size or new_pos[1] < 0 or new_pos[1] >= self.dimension_size or new_pos[2] < 0 or new_pos[2] >= self.dimension_size):
             return False
         # case: it moved out of the block
-        if (new_pos[2] > 0 and self.building_zone[new_pos[0], new_pos[1], new_pos[2] - 1] == 0):  # case: there is no block below and we are above the ground
-            return False
-        if (self.building_zone[new_pos[0], new_pos[1], new_pos[2]] == -1):  # there is a block here
-            return False
+        """if (new_pos[2] > 0 and self.building_zone[new_pos[0], new_pos[1], new_pos[2] - 1] == 0):  # case: there is no block below and we are above the ground
+            return False"""
+        """if (self.building_zone[new_pos[0], new_pos[1], new_pos[2]] == -1):  # there is a block here
+            return False"""
         # check if  
-        if (action == self.action_enum.UP):
+        """if (action == self.action_enum.UP):
             # if prev_pos is in scaffolding domain and new_pos is not in block(so new pos is air or another scaffolding)
             if (self._isInScaffoldingDomain(prev_pos) and not self._isInBlock(new_pos)):  # if agent was in the scaffolding domain
                 return True
@@ -278,7 +283,7 @@ class GridWorldEnv(gym.Env):
             if (not self._isInScaffoldingDomain(prev_pos) and self._isInScaffoldingDomain(new_pos)):
                 return True
             return False
-        # case: handle climbing down and up a block
+        # case: handle climbing down and up a block"""
         return True
     """
     return true if placement is valid
@@ -289,6 +294,31 @@ class GridWorldEnv(gym.Env):
         agent_id: the id of the agent
     
     """
+    def _isScaffoldValid(self, current_pos):
+        neighbour_direction = [
+                [current_pos[0] + delta_x, current_pos[1] + delta_y, current_pos[2] + delta_z]
+                for delta_x, delta_y, delta_z in GridWorldEnv.neighbors
+            ]
+
+        # Find if there is any supporting neighbour, or on the ground
+        if (supporting_neighbour := current_pos[2] == 0) is False:
+            for neighbour in neighbour_direction:
+                if neighbour[0] < 0 or neighbour[0] >= self.dimension_size \
+                        or neighbour[1] < 0 or neighbour[1] >= self.dimension_size \
+                        or neighbour[2] < 0 or neighbour[2] >= self.dimension_size:
+                    continue
+
+                if self.building_zone[neighbour[0], neighbour[1], neighbour[2]] == GridWorldEnv.SCAFFOLD:
+                    supporting_neighbour = True
+                    break
+
+        # If the space is already occupied
+        duplicate_block = self.building_zone[current_pos[0], current_pos[1], current_pos[2]] == GridWorldEnv.SCAFFOLD
+        if supporting_neighbour and not duplicate_block:
+            return True
+        return False
+    
+
     def _isValidPlace(self, action, current_pos, agent_id):
         if (action == self.action_enum.PLACE_SCAFOLD):
             if (not self._isInScaffoldingDomain(current_pos) and not self._isInBlock(current_pos)):  # case: there is not
@@ -418,82 +448,77 @@ class GridWorldEnv(gym.Env):
         
         """
         current_pos = self.AgentsPos[agent_id]
-        new_pos = self._tryMove(action, agent_id)
 
         if (action in [0, 1, 2, 3, 4, 5]):  # move action
             R = -0.5
-            Terminated = False
-            Truncated = False
-            isValid = False
+            terminated = False
+            truncated = False
+            is_valid = False
+            new_pos = self._tryMove(action, agent_id)
             if (self._isValidMove(new_pos, action, current_pos)):
                 #self.building_zone[self.AgentsPos[agent_id][0], self.AgentsPos[agent_id][1], self.AgentsPos[agent_id][2]] = 0
                 self.AgentsPos[agent_id][0] = new_pos[0]
                 self.AgentsPos[agent_id][1] = new_pos[1]
                 self.AgentsPos[agent_id][2] = new_pos[2]
                 #self.building_zone[self.AgentsPos[agent_id][0], self.AgentsPos[agent_id][1], self.AgentsPos[agent_id][2]] = 1
-            else:  # case: invalid move, so agent just stay here
-                pass
+            """else:  # case: invalid move, so agent just stay here
+                pass"""
             obs = self.get_obs(agent_id)
-#            self.mutex.release()
-            if not isValid: R = -1
+            #self.mutex.release()
+            #if not isValid: R = -1
             if self.timestep_elapsed > MAX_TIMESTEP:
-                Truncated = True
-                return obs, R, Terminated, Truncated, {}
-            else:
-                return obs, R, Terminated, Truncated, {}
+                truncated = True    
+            return obs, R, terminated, truncated, {}
 
         elif (action == self.action_enum.PLACE_SCAFOLD):
-            R = -1
-            Terminated = False
-            Truncated = False
-            isValid = False
+            R = -0.5
+            terminated = False
+            truncated = False
+            is_valid = False
             # agent can only place scaffold if there is nothing in current position
-            if (self._isValidPlace(action, current_pos, agent_id)):
+            if (self._isScaffoldValid(current_pos)):
                 self.building_zone[current_pos[0], current_pos[1], current_pos[2]] = -2  # place scaffold block
-                isValid = True
-            else:  # case: invalid place, so agent just stay here
-                pass
+                is_valid = True
+
             obs = self.get_obs(agent_id)
 #            self.mutex.release()
-            if not isValid: R = -5
+            if not is_valid: R = -10
             if self.timestep_elapsed > MAX_TIMESTEP:
-                Truncated = True
-                return obs, R, Terminated, Truncated, {}
-            else:
-                return obs, R, Terminated, Truncated, {}
-
+                truncated = True
+            return obs, R, terminated, truncated, {}
+            
         elif (action == self.action_enum.REMOVE_SCAFOLD):
             R = -0.25
-            Terminated = False
-            Truncated = False
-            isValid = False
+            terminated = False
+            truncated = False
+            is_valid = False
             # agent can only remove scaffold if there is a scaffold in current position and there is no scaffold above or agent above
 
             if (self._isInScaffoldingDomain(current_pos)):
                 if (not self._isOutOfBound([current_pos[0], current_pos[1], current_pos[2] + 1]) and  self._isInNothing([current_pos[0], current_pos[1], current_pos[2] + 1])):
                     # case: remove scaffold is not on the top floor and there is no block above
                     self.building_zone[current_pos[0], current_pos[1], current_pos[2]] = 0
-                    isValid = True
+                    is_valid = True
                 elif (self._isOutOfBound([current_pos[0], current_pos[1], current_pos[2] + 1])):
                     # case: remove scaffold is on the top floor
                     self.building_zone[current_pos[0], current_pos[1], current_pos[2]] = 0
-                    isValid = True
+                    is_valid = True
             else:  # case: invalid remove, so agent just stay here
                 pass
             # return obs, reward, done, info
             obs = self.get_obs(agent_id)
             #self.mutex.release()
-            if not isValid: R = -1
+            if not is_valid: R = -1
             if self.timestep_elapsed > MAX_TIMESTEP:
-                Truncated = True
-                return obs, R, Terminated, Truncated, {}
+                truncated = True
+                return obs, R, terminated, truncated, {}
             else:
-                return obs, R, Terminated, Truncated, {}
+                return obs, R, terminated, truncated, {}
         elif (action in [8, 9, 10, 11]):  # place command
             R = -1.5
-            Terminated = False
-            Truncated = False
-            isValid = False
+            terminated = False
+            truncated = False
+            is_valid = False
             if (self._isValidPlace(action, current_pos, agent_id)):  # for no scaffold place
                 place_pos = None
                 if action == self.action_enum.PLACE_FORWARD:
@@ -508,7 +533,7 @@ class GridWorldEnv(gym.Env):
                     raise ValueError("Invalid action")
                 self.building_zone[place_pos[0], place_pos[1], place_pos[2]] = -1  # place block
 
-                isValid = True
+                is_valid = True
                 # rightTrack = 1 if agent placed block in the right position
                 rightTrack = self.building_zone[place_pos[0], place_pos[1], place_pos[2]] == self.target[place_pos[0], place_pos[1], place_pos[2]]
                 if rightTrack:
@@ -521,14 +546,14 @@ class GridWorldEnv(gym.Env):
             obs = self.get_obs(agent_id)
             #self.mutex.release()
             # check if structure is complete
-            if (isValid and self._isTerminal()):  #  only do terminal check if we placed a block to save computation
-                Terminated = True
+            if (is_valid and self._isTerminal()):  #  only do terminal check if we placed a block to save computation
+                terminated = True
                 R = 100
             if self.timestep_elapsed > MAX_TIMESTEP:
-                Truncated = True
-                return obs, R, Terminated, Truncated, {}
+                truncated = True
+                return obs, R, terminated, truncated, {}
             else:
-                return obs, R, Terminated, Truncated, {}
+                return obs, R, terminated, truncated, {}
         
  
     
