@@ -377,12 +377,17 @@ class GridWorldEnv(gym.Env):
         # check if target is complete, we disregard scaffolding blocks
         # check if self.target == self.building_zone but disregard scaffolding blocks
         # TODO: make it more efficient, perhaps use numpy array method
-        for i in range(self.dimension_size):
-            for j in range(self.dimension_size):
-                for k in range(self.dimension_size):
-                    if (self.target[i, j, k] == -1 and self.building_zone[i, j, k] != -1):
-                        return False
-        return True
+        #for i in range(self.dimension_size):
+        #    for j in range(self.dimension_size):
+        #        for k in range(self.dimension_size):
+        #            if (self.target[i, j, k] == -1 and self.building_zone[i, j, k] != -1):
+        #                return False
+        # do a 
+        difference = self.target - self.building_zone
+        difference = np.isin(difference, 1)
+        if not np.any(difference):
+            return True
+        return False
 
     def step(self, action_tuple):
         if (len(action_tuple) != 2):
@@ -462,12 +467,16 @@ class GridWorldEnv(gym.Env):
             Truncated = False
             isValid = False
             # agent can only remove scaffold if there is a scaffold in current position and there is no scaffold above or agent above
-            if (self._isInScaffoldingDomain(current_pos)
-             and not self._isInScaffoldingDomain([current_pos[0], current_pos[1], current_pos[2] + 1])
-             and not self._thereIsAgent([current_pos[0], current_pos[1], current_pos[2] + 1])):
 
-                self.building_zone[current_pos[0], current_pos[1], current_pos[2]] = 0
-                isValid = True
+            if (self._isInScaffoldingDomain(current_pos)):
+                if (not self._isOutOfBound([current_pos[0], current_pos[1], current_pos[2] + 1]) and  self._isInNothing([current_pos[0], current_pos[1], current_pos[2] + 1])):
+                    # case: remove scaffold is not on the top floor and there is no block above
+                    self.building_zone[current_pos[0], current_pos[1], current_pos[2]] = 0
+                    isValid = True
+                elif (self._isOutOfBound([current_pos[0], current_pos[1], current_pos[2] + 1])):
+                    # case: remove scaffold is on the top floor
+                    self.building_zone[current_pos[0], current_pos[1], current_pos[2]] = 0
+                    isValid = True
             else:  # case: invalid remove, so agent just stay here
                 pass
             # return obs, reward, done, info
