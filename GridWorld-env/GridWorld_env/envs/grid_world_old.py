@@ -107,12 +107,16 @@ class GridWorldEnvOld(gym.Env):
 
         elif action == 4:
             # Z + 1
-            if self.agent_pos[2] < self.dimension_size - 1:
+            isInsideBlock = self.building_zone[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]] == 1
+
+            if self.agent_pos[2] < self.dimension_size - 1 and isInsideBlock:
                 self.agent_pos[2] += 1
             move_cmd = True
         elif action == 5:
             # Z - 1
-            if self.agent_pos[2] > 0:
+            isInsideBlock = self.building_zone[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]] == 1
+            blockBelow = isInsideBlock = self.building_zone[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2] - 1] == 1
+            if self.agent_pos[2] > 0 and (isInsideBlock or blockBelow):
                 self.agent_pos[2] -= 1
             move_cmd = True
 
@@ -276,11 +280,13 @@ if __name__ == "__main__":
     start = time.time()
     env = GridWorldEnvOld(8)
 
-    for __ in range(100):
-        env.reset()
-        for _ in range(10_000):
-            env.step(random.randint(0, 6))
-
+    #for __ in range(100):
+    #    env.reset()
+    #    for _ in range(10_000):
+    env.reset()
+    env.step(6)
+    env.step(4)
+    
     end = time.time()
     print(end - start)
     # env.define_new_target()
