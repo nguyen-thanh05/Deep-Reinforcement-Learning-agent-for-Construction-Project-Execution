@@ -55,8 +55,8 @@ class GridWorldEnv(gym.Env):
 
     """
     neighbors = [[-1, 0, 0], [1, 0, 0], [0, -1, 0], [0, 1, 0], [0, 0, -1], [0, 0, 1]]
-    SCAFFOLD = 0.5
-    BLOCK = 1
+    SCAFFOLD = -2
+    BLOCK = -1
     EMPTY = 0
     
     
@@ -79,7 +79,6 @@ class GridWorldEnv(gym.Env):
 
         
         self.building_zone = self.obs[0]
-        
         self.agent_pos_grid = []
         for i in range(1, num_agents + 1):
             self.agent_pos_grid.append(self.obs[i])
@@ -629,149 +628,40 @@ class GridWorldEnv(gym.Env):
     
 
 
-def testMove(env, agent_id):
-    # move forward
-    for i in range(5):
-        action = i
-        env.step((action, agent_id))
-        env.render()
-def testScafold(env, agent_id):
+
+
+
+def test(env, agent_id):
+    # place block
+    env.step((8, agent_id))
     env.render()
+
     # move forward
     env.step((0, agent_id))
     env.render()
-    # place scaffold
+
+    # placescafold
+
     env.step((6, agent_id))
     env.render()
+
     # move up
     env.step((4, agent_id))
     env.render()
-    # move down 
-    env.step((5, agent_id))
-    env.render()
-    # remove scafold    
-    env.step((7, agent_id))
+
+    # move backward
+    env.step((1, agent_id))
     env.render()
 
-def testPlaceBlock(env, agent_id):
-    env.render()
-    #place forward
+    # place block
     env.step((8, agent_id))
     env.render()
-    #place backward
-    env.step((9, agent_id))
-    env.render()
-    #place left
-    env.step((10, agent_id))
-    env.render()
-    #place right
-    env.step((11, agent_id))
-    env.render()
+
+    
+    
+    
     return
 
-def placeBrianScalfold(env, agent_id):
-    # place a block front of the agent
-    env.step((action_enum.PLACE_FORWARD, agent_id))
-    env.render()
-
-    # place a scaffold 
-    env.step((action_enum.PLACE_SCAFOLD, agent_id))
-    env.render()
-
-    # walk left
-    env.step((action_enum.LEFT, agent_id))
-    env.render()
-
-    # walk forward
-    env.step((action_enum.FORWARD, agent_id))
-    env.render()
-
-    # place a scaffold
-    env.step((action_enum.PLACE_SCAFOLD, agent_id))
-    env.render()
-
-    # walk forward
-    env.step((action_enum.FORWARD, agent_id))
-    env.render()
-
-    # walk right
-    env.step((action_enum.RIGHT, agent_id))
-    env.render()
-
-    # place a scafold
-    env.step((action_enum.PLACE_SCAFOLD, agent_id))
-    env.render()
-
-    # walk right 
-    env.step((action_enum.RIGHT, agent_id))
-    env.render()
-
-    # walk backward
-    env.step((action_enum.BACKWARD, agent_id))
-    env.render()
-
-    # place a scafold
-    env.step((action_enum.PLACE_SCAFOLD, agent_id))
-    env.render()
-
-    # climb up
-    env.step((action_enum.UP, agent_id))
-    env.render()
-
-    # place a block to the left
-    env.step((action_enum.PLACE_LEFT, agent_id))
-    env.render()
-
-def testInvalidPlace(env, agent_id):
-    # place a block front of the agent
-    env.step((action_enum.PLACE_FORWARD, agent_id))
-    env.render()
-
-    # place a scaffold
-    env.step((action_enum.PLACE_SCAFOLD, agent_id))
-    env.render()
-
-    # move up 
-    env.step((action_enum.UP, agent_id))
-    env.render()
-
-    # place a block front of the agent
-    env.step((action_enum.PLACE_FORWARD, agent_id))
-    env.render()
-    return
-
-def testWalkDown(env, agent_id):
-    # place a scaffold
-    env.step((action_enum.PLACE_SCAFOLD, agent_id))
-    env.render()
-
-    # move up 
-    env.step((action_enum.UP, agent_id))
-    env.render()
-
-    # place a scaffold
-    env.step((action_enum.PLACE_SCAFOLD, agent_id))
-    env.render()
-
-    # move up 
-    env.step((action_enum.UP, agent_id))
-    env.render()
-
-    # walk forward
-    env.step((action_enum.FORWARD, agent_id))
-    env.render()
-    return
-
-
-def testBug(env, agent_id):
-        # set agent position to [2, 2,0]
-        env.AgentsPos[0] = np.array([2, 2, 0])
-        env.render()
-        #ce right
-        env.step((action_enum.PLACE_RIGHT, 0))
-        env.render()
-
-        return
 if __name__ == "__main__":
     # List of actions
     # 0: forward, 1: backward
@@ -785,7 +675,7 @@ if __name__ == "__main__":
     #testScafold(env, 0)
     #testPlaceBlock(env, 0)
     #placeBrianScalfold(env, 0)
-    testBug(env, 0)
+    test(env, 0)
     #testInvalidPlace(env, 0)
     #env.step(0)
     #env.step(6)
