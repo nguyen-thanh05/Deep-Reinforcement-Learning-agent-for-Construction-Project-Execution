@@ -5,7 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from target_loader import TargetLoader
 import random
-MAX_TIMESTEP = 300
+MAX_TIMESTEP = 1000
 
 
 class GridWorldEnv(gym.Env):
