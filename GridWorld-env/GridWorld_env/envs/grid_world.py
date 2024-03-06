@@ -55,7 +55,7 @@ class GridWorldEnv(gym.Env):
 
     """
     neighbors = [[-1, 0, 0], [1, 0, 0], [0, -1, 0], [0, 1, 0], [0, 0, -1], [0, 0, 1]]
-    SCAFFOLD = -1
+    SCAFFOLD = 0.5
     BLOCK = 1
     EMPTY = 0
     
@@ -65,7 +65,7 @@ class GridWorldEnv(gym.Env):
         self.observation_space = spaces.Box(low=0, high=255, shape=(64, 64, 3), dtype=np.uint8)
         self.dimension_size = dimension_size
         self.timestep_elapsed = 0
-        
+        self.finished_structure = False
         
         self.record_sequence = []
         # 1 for building zone, 1 for target, 1 for each agent position, and 1 for all agents position
@@ -101,7 +101,7 @@ class GridWorldEnv(gym.Env):
     def reset(self, seed=None, options=None):
         self.mutex.acquire()  # get lock to enter critical section
         self.building_zone = np.zeros((self.dimension_size, self.dimension_size, self.dimension_size), dtype=int)
-
+        self.finished_structure = False
         self.AgentsPos = np.zeros((self.num_agents, 3), dtype=int)
 
         random_start_pos = np.zeros(3, dtype=int)
@@ -356,12 +356,12 @@ class GridWorldEnv(gym.Env):
     
     """ 
     def _supportingBlockExist(self, currentPos):    
-        neighbour_direction = [  # list of 6 direction around currentPos
+        neighbour_direction = [  
             [currentPos[0] + delta_x, currentPos[1] + delta_y, currentPos[2] + delta_z]
-            for delta_x, delta_y, delta_z in [[-1, 0, 0], [1, 0, 0], [0, -1, 0], [0, 1, 0], [0, 0, -1], [0, 0, 1]]
-        ]
+            for delta_x, delta_y, delta_z in [[-1, 0, 0], [1, 0, 0], [0, -1, 0], [0, 1, 0]]
+        ]                                       # LEFT       RIGHT       BEHIND      FRONT
 
-        scafold_direction = [
+        """scafold_direction = [
             [currentPos[0] + delta_x, currentPos[1] + delta_y, currentPos[2] + delta_z]
             for delta_x, delta_y, delta_z in [[-1, 0, -1], [1, 0, -1], [0, -1, -1], [0, 1, -1], [0, 0, -1]]
             #                                  S down       N down        E dodwn      W down      down
@@ -371,7 +371,7 @@ class GridWorldEnv(gym.Env):
             if scafold[0] < 0 or scafold[0] >= self.dimension_size or scafold[1] < 0 or scafold[1] >= self.dimension_size or scafold[2] < 0 or scafold[2] >= self.dimension_size:
                 scafold_direction.remove(scafold)  # remove invalid scafolds
             else:
-                valid_scafold.append(scafold)
+                valid_scafold.append(scafold)"""
         
         for neighbour in neighbour_direction:
             if neighbour[0] < 0 or neighbour[0] >= self.dimension_size or neighbour[1] < 0 or neighbour[1] >= self.dimension_size or neighbour[2] < 0 or neighbour[2] >= self.dimension_size:
@@ -385,22 +385,26 @@ class GridWorldEnv(gym.Env):
         #        supporting_neighbour = True
         #        break
         #
-        for space in valid_scafold:
+        """for space in valid_scafold:
             if not self._isInScaffoldingDomain(space) and not self._isInBlock(space):
                 supporting_neighbour = False
         if len(valid_scafold) == 0:
-            supporting_neighbour = False
+            supporting_neighbour = False"""
 
+        for neighbour in neighbour_direction:
+            if self.building_zone[neighbour[0], neighbour[1], neighbour[2]] != GridWorldEnv.SCAFFOLD or self.building_zone[neighbour[0], neighbour[1], neighbour[2]] != GridWorldEnv.BLOCK:
+                supporting_neighbour = False
+                break
         # if the block is already on the ground then it is supporting
-        if currentPos[2] == 0:
-            supporting_neighbour = True
+        """if currentPos[2] == 0:
+            supporting_neighbour = True"""
         
         # if there is block below then it is supporting
         #if currentPos[2] > 0 and self.building_zone[currentPos[0], currentPos[1], currentPos[2] - 1] == -1:
         #    supporting_neighbour = True
         return supporting_neighbour
     
-    def _isTerminal(self):
+    def _isDoneBuildingStructure(self):
         # check if target is complete, we disregard scaffolding blocks
         # check if self.target == self.building_zone but disregard scaffolding blocks
         # TODO: make it more efficient, perhaps use numpy array method
@@ -411,8 +415,10 @@ class GridWorldEnv(gym.Env):
         #                return False
         # do a 
         
+        # if block = 1 and scaffold = 0.5, then target - building_zone = 0 when the structure is complete. scaffold will become -(-0.5) = 0.5
+        # and the not yet built block will become 1 - 0 = 1
         difference = self.target - self.building_zone
-        difference = np.isin(difference, -1)
+        difference = np.isin(difference, 1)
         if not np.any(difference):
             return True
         return False
@@ -496,6 +502,7 @@ class GridWorldEnv(gym.Env):
             is_valid = False
             # agent can only remove scaffold if there is a scaffold in current position and there is no scaffold above or agent above
 
+            
             if (self._isInScaffoldingDomain(current_pos)):
                 if (not self._isOutOfBound([current_pos[0], current_pos[1], current_pos[2] + 1]) and  self._isInNothing([current_pos[0], current_pos[1], current_pos[2] + 1])):
                     # case: remove scaffold is not on the top floor and there is no block above
@@ -507,6 +514,8 @@ class GridWorldEnv(gym.Env):
                     is_valid = True
             else:  # case: invalid remove, so agent just stay here
                 pass
+                
+            
             # return obs, reward, done, info
             obs = self.get_obs(agent_id)
             #self.mutex.release()
@@ -516,12 +525,34 @@ class GridWorldEnv(gym.Env):
                 return obs, R, terminated, truncated, {}
             else:
                 return obs, R, terminated, truncated, {}
-        elif (action in [8, 9, 10, 11]):  # place command
+        elif action == self.action_enum.PLACE_BLOCK:  # place command
             R = -1.5
             terminated = False
             truncated = False
             is_valid = False
-            if (self._isValidPlace(action, current_pos, agent_id)):  # for no scaffold place
+            
+            
+            # if there is already a block or a scaffold in the position
+            if self.building_zone[current_pos[0], current_pos[1], current_pos[2]] == GridWorldEnv.SCAFFOLD or self.building_zone[current_pos[0], current_pos[1], current_pos[2]] == GridWorldEnv.BLOCK:
+                is_valid = False
+            
+            # Check if there is proper support. Case 1, on the floor
+            elif current_pos[2] == 0:
+                is_valid = True
+            # Case 2, on the scaffold
+            elif self._supportingBlockExist(current_pos):
+                is_valid = True
+                
+            if is_valid:
+                self.building_zone[current_pos[0], current_pos[1], current_pos[2]] = GridWorldEnv.BLOCK
+
+                if  self.target[current_pos[0], current_pos[1], current_pos[2]] == self.building_zone[current_pos[0], current_pos[1], current_pos[2]]:
+                    R += 1.25
+            else:
+                R = -10
+                
+            
+            """if (self._isValidPlace(action, current_pos, agent_id)):  # for no scaffold place
                 place_pos = None
                 if action == self.action_enum.PLACE_FORWARD:
                     place_pos = current_pos + [1, 0, 0]
@@ -543,14 +574,15 @@ class GridWorldEnv(gym.Env):
                 else:
                     R = -1.5
             else:  # invalid placement
-                R = -5
+                R = -5"""
 
             obs = self.get_obs(agent_id)
             #self.mutex.release()
             # check if structure is complete
-            if (is_valid and self._isTerminal()):  #  only do terminal check if we placed a block to save computation
-                terminated = True
-                R = 100
+            if (is_valid and self._isDoneBuildingStructure()):  #  only do terminal check if we placed a block to save computation
+                #terminated = True
+                R = 10
+                self.finished_structure = True
             if self.timestep_elapsed > MAX_TIMESTEP:
                 truncated = True
                 return obs, R, terminated, truncated, {}
