@@ -111,7 +111,7 @@ class GridWorldEnv(gym.Env):
             random_start_pos[2] = 0
             self.AgentsPos[i] = random_start_pos
             #self.building_zone[random_start_pos[0], random_start_pos[1], random_start_pos[2]] = 1  # encode agents position on the building zone
-        self.action_space = spaces.Discrete(12)   
+        self.action_space = spaces.Discrete(9)   
         self._init_target()
         
         self.observation_space = spaces.Box(low=0, high=1, shape=(3, self.dimension_size, self.dimension_size, self.dimension_size), dtype=int)
