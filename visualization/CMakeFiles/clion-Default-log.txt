@@ -1,0 +1,4 @@
+Cannot generate into /Users/ryancooper/school/winter24/469/Deep-Reinforcement-Learning-agent-for-Construction-Project-Execution/visualization
+It was created with incompatible generator 'Unix Makefiles'
+
+Please either delete it manually or select another generation directory

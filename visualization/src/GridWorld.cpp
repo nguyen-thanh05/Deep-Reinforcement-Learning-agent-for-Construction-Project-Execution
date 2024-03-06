@@ -276,6 +276,7 @@ void GridWorld::LoadFromFile() {
 }
 
 void GridWorld::CreatePDDLFile(std::string problemName)  const {
+    std::cout << "Creating pddl file" << std::endl;
     std::ofstream file(filePath);
 
     // Add the start of the file template
