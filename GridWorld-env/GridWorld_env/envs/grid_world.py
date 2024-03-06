@@ -358,7 +358,7 @@ class GridWorldEnv(gym.Env):
     def _supportingBlockExist(self, currentPos):    
         neighbour_direction = [  
             [currentPos[0] + delta_x, currentPos[1] + delta_y, currentPos[2] + delta_z]
-            for delta_x, delta_y, delta_z in [[-1, 0, 0], [1, 0, 0], [0, -1, 0], [0, 1, 0]]
+            for delta_x, delta_y, delta_z in [[-1, 0, -1], [1, 0, -1], [0, -1, -1], [0, 1, -1], [0, 0, -1]]
         ]                                       # LEFT       RIGHT       BEHIND      FRONT
 
         """scafold_direction = [
@@ -392,7 +392,7 @@ class GridWorldEnv(gym.Env):
             supporting_neighbour = False"""
 
         for neighbour in neighbour_direction:
-            if self.building_zone[neighbour[0], neighbour[1], neighbour[2]] != GridWorldEnv.SCAFFOLD or self.building_zone[neighbour[0], neighbour[1], neighbour[2]] != GridWorldEnv.BLOCK:
+            if (self._isInNothing(neighbour)):
                 supporting_neighbour = False
                 break
         # if the block is already on the ground then it is supporting
