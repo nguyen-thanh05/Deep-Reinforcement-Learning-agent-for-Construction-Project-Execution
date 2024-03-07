@@ -1,0 +1,9 @@
+Name: instance_6
+A: 50
+X: 10
+Y: 10
+Structure:
+4 5 3
+5 5 3
+4 6 3
+5 6 3

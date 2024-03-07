@@ -1,0 +1,7 @@
+Name: toy
+A: 2
+X: 7
+Y: 7
+Structure:
+3 3 2
+3 4 2
