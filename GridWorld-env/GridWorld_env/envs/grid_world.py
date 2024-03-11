@@ -5,7 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from target_loader import TargetLoader
 import random
-MAX_TIMESTEP = 1000
+MAX_TIMESTEP = 850
 
 
 class GridWorldEnv(gym.Env):
@@ -167,7 +167,7 @@ class GridWorldEnv(gym.Env):
                 difference = self.target - self.building_zone
                 difference = np.isin(difference, 1)
                 if not np.any(difference):
-                    return self.get_obs(), 0, True, False, {}
+                    return self.get_obs(), 100, True, False, {}
                 else:
                     if self.building_zone[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]] == self.target[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]]:
                         return self.get_obs(), 1, False, self.timestep_elapsed > MAX_TIMESTEP, {}
