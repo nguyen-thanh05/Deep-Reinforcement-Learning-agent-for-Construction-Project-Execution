@@ -15,7 +15,7 @@ class GridWorldEnv(gym.Env):
     BEAM_BLOCK = 2
     EMPTY = 0
     def __init__(self, dimension_size, path: str):
-        self.observation_space = spaces.Box(low=0, high=255, shape=(64, 64, 3), dtype=np.uint8)
+        self.observation_space = spaces.Box(low=0, high=1, shape=(3, dimension_size, dimension_size, dimension_size), dtype=np.uint8)
         self.dimension_size = dimension_size
         self.timestep_elapsed = 0
         self.record_sequence = []
@@ -69,29 +69,6 @@ class GridWorldEnv(gym.Env):
         pass
 
     def _init_obs(self):
-        """
-        # agent_pos[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]] = 1
-
-        # Hardcoding 4 columns, and 4 beams across the 4 columns. TO BE CHANGED TO BE MORE DYNAMIC AND USEABLE
-        possible_targets = []
-
-        points = []
-        for i in range(self.dimension_size):
-            points.append([0, 0, i])  # column 1 at position (0, 0)
-            points.append([0, self.dimension_size - 1, i])  # column 2 at position (0, dimension_size - 1)
-            points.append([self.dimension_size - 1, 0, i])  # column 3 at position (dimension_size - 1, 0)
-            points.append([self.dimension_size - 1, self.dimension_size - 1, i])  # column 4 at position (dimension_size - 1, dimension_size - 1)
-
-            points.append([0, i, self.dimension_size - 1])  # beam 1 connecting column 1 and column 2
-            points.append([self.dimension_size - 1, i, self.dimension_size - 1])  # beam 2 connecting column 3 and column 4
-            points.append([i, 0, self.dimension_size - 1])  # beam 3 connecting column 1 and column 3
-            points.append([i, self.dimension_size - 1, self.dimension_size - 1])  # beam 4 connecting column 2 and column 4
-
-        possible_targets.append(points)
-
-        for p in points:
-            self.target[p[0], p[1], p[2]] = 1
-        """
         if self._initialized:
             return
         self.all_targets = self.loader.load_all()
@@ -102,7 +79,6 @@ class GridWorldEnv(gym.Env):
                 (f"Dimension mismatch: Target: {self.all_targets[i].shape}, "
                  f"Environment: {self.dimension_size}\n"
                  "TODO: more flexibility")
-        # np.copyto(self.obs[2], random.choice(self.all_targets))
         self._initialized = True
 
     def step(self, action):
@@ -170,6 +146,7 @@ class GridWorldEnv(gym.Env):
             
             if self.building_zone[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]] != GridWorldEnv.EMPTY:
                 duplicate_block = True
+                supporting_neighbour = False
                 
             else:
                 duplicate_block = False            
@@ -200,8 +177,6 @@ class GridWorldEnv(gym.Env):
                 |      2        |      2      |         1     |    0
                 """
                 check_done = np.isin(self.building_zone[self.target != 0], 0)
-                """difference = self.target - self.building_zone
-                difference = np.isin(difference, 1)"""
                 if not np.any(check_done):
                     return self.get_obs(), 10, True, False, {}
                 else:
@@ -248,60 +223,12 @@ class GridWorldEnv(gym.Env):
 
     
     def _check_columns_finish(self):
-        difference = self.target - self.building_zone
+        difference = self.building_zone - self.target
         difference = np.isin(difference, -GridWorldEnv.COL_BLOCK)
         if np.any(difference):
             return False
         return True
-    """def define_new_target(self):
-        empty_zone = np.zeros((self.dimension_size, self.dimension_size, self.dimension_size), dtype=int)
-        fig = plt.figure()
-        ax = fig.add_subplot(1, 1, 1, projection='3d')
-        ax.voxels(empty_zone, facecolors='#7A88CCC0', edgecolor='k')
-
-        def on_click(event):
-            pressed = ax.button_pressed
-            ax.button_pressed = -1 # some value that doesn't make sense.
-            coords = ax.format_coord(event.xdata, event.ydata) # coordinates string in the form x=value, y=value, z= value
-            ax.button_pressed = pressed
-            print(coords)
-            print(float("-10"))
-
-            x, y, z = coords.split(", ")
-
-            if x[2] not in ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]:
-                x = x.split("=")[1]
-                x = "-" + x[1:]
-                x = ceil(float(x))
-            else:
-                x = ceil(float(x.split("=")[1]))
-            if y[2] not in ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]:
-                y = y.split("=")[1]
-                y = "-" + y[1:]
-                y = ceil(float(y))
-            else:
-                y = ceil(float(y.split("=")[1]))
-            if z[2] not in ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]:
-                z = z.split("=")[1]
-                z = "-" + z[1:]
-                z = ceil(float(z))
-            else:
-                z = ceil(float(z.split("=")[1]))
-
-
-            empty_zone[x, y, z] = 1
-            target_cube = empty_zone == 1
-            # set the colors of each object
-            colors = np.empty(target_cube.shape, dtype=object)
-            colors[target_cube] = '#7A88CCC0'
-            ax.voxels(target_cube, facecolors=colors, edgecolor='k')
-            plt.show()
-            return coords        
-
-        print("Click on the target position")
-        cid = fig.canvas.mpl_connect('button_release_event', on_click)
-        plt.show()"""
-
+    
     def close(self):
         pass
 
@@ -314,23 +241,17 @@ if __name__ == "__main__":
     # 0: forward, 1: backward
     # 2: left, 3: right
     # 4: up, 5: down
-    # 6: place block
-    """import random
-
-    start = time.time()
-    env = GridWorldEnv(4)
-
-    end = time.time()
-    print(end - start)"""
-    # env.define_new_target()
-    
+    # 6: place beam
+    # 7: place col block
     
     env = GridWorldEnv(4, "targets")
-    env.step(0)
-    env.step(0)
-    env.step(7)
+    env.building_zone[:, :, :3] = GridWorldEnv.COL_BLOCK
     env.step(4)
+    env.step(4)
+    env.step(4)
+    env.step(4)
+    
     env.step(6)
-    env.step(4)
+    env.step(7)
     env.render()
     print(env.get_obs())
