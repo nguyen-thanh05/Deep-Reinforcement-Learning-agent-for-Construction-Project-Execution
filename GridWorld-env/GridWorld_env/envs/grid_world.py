@@ -46,7 +46,7 @@ class GridWorldEnv(gym.Env):
         # 2: left, 3: right
         # 4: up, 5: down
         # 6: pick
-        self.action_space = spaces.Discrete(7)
+        self.action_space = spaces.Discrete(8)
         self._init_obs()
 
         self.observation_space = spaces.Box(low=0, high=1, shape=(3, self.dimension_size, self.dimension_size, self.dimension_size), dtype=int)
