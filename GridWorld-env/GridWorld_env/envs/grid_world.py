@@ -46,7 +46,7 @@ class GridWorldEnv(gym.Env):
         # 2: left, 3: right
         # 4: up, 5: down
         # 6: pick
-        self.action_space = spaces.Discrete(7)
+        self.action_space = spaces.Discrete(8)
         self._init_obs()
 
         self.observation_space = spaces.Box(low=0, high=1, shape=(3, self.dimension_size, self.dimension_size, self.dimension_size), dtype=int)
@@ -139,7 +139,7 @@ class GridWorldEnv(gym.Env):
 
                 # If the space is already occupied
                 duplicate_block = self.building_zone[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]] != GridWorldEnv.EMPTY
-                if supporting_neighbour:
+                if supporting_neighbour and not duplicate_block:
                     self.building_zone[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]] = GridWorldEnv.BEAM_BLOCK
         
         elif action == 7: # Place a column block
@@ -253,5 +253,8 @@ if __name__ == "__main__":
     
     env.step(6)
     env.step(7)
+    env.step(5)
+    env.step(6)
+    env.step(4)
     env.render()
     print(env.get_obs())
