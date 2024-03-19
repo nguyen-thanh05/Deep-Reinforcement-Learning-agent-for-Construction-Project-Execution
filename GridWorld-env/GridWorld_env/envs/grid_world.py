@@ -659,30 +659,37 @@ class GridWorldEnv(gym.Env):
             agent_pos_grid[self.AgentsPos[i][0], self.AgentsPos[i][1], self.AgentsPos[i][2]] = 1
 
         # prepare some coordinates
-        building_zone_cube = self.building_zone == -1
-        agent_position_cube = agent_pos_grid == 1
         scaffold_cube = self.building_zone == -2
+        col_cube = self.building_zone == GridWorldEnv.COL_BLOCK
+        beam_cube = self.building_zone == GridWorldEnv.BEAM_BLOCK
+        agent_position_cube = agent_pos_grid == 1
 
         fig = plt.figure()
 
-        final_rendering_cube = building_zone_cube | agent_position_cube | scaffold_cube
+        final_rendering_cube =  agent_position_cube | scaffold_cube | col_cube | beam_cube
         # set the colors of each object
         colors = np.empty(final_rendering_cube.shape, dtype=object)
-        colors[building_zone_cube] = '#7A88CCC0'
+        colors[col_cube] = '#7A88CCC0'
         colors[agent_position_cube] = '#FFD65DC0'
-        colors[scaffold_cube] = 'pink'
+        colors[beam_cube] = '#FF5733C0'
+        colors[scaffold_cube] = '#FFC300C0'
 
         ax = fig.add_subplot(1, 2, 1, projection='3d')
         ax.voxels(final_rendering_cube, facecolors=colors, edgecolor='k')
 
-        target_cube = self.target == -1
+        col_cube = self.target == GridWorldEnv.COL_BLOCK
+        beam_cube = self.target == GridWorldEnv.BEAM_BLOCK
+        target_render = col_cube | beam_cube
         # set the colors of each object
-        colors = np.empty(target_cube.shape, dtype=object)
-        colors[target_cube] = '#7A88CCC0'
+        colors = np.empty(target_render.shape, dtype=object)
+        colors[col_cube] = '#7A88CCC0'
+        colors[beam_cube] = '#FF5733C0'
+
         ax = fig.add_subplot(1, 2, 2, projection='3d')
         ax.voxels(target_cube, facecolors=colors, edgecolor='k')
         
         plt.show()
+
     
     def close(self):
         pass
