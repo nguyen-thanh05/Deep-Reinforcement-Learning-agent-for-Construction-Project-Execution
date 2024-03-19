@@ -65,7 +65,7 @@ class GridWorldEnv(gym.Env):
     COL_BLOCK = 1
     BEAM_BLOCK = 2
     
-    def __init__(self, dimension_size, num_agents=1, path:str , debug=False):
+    def __init__(self, dimension_size, path: str, num_agents=1, debug=False):
         self.action_enum = Action
         self.observation_space = spaces.Box(low=0, high=255, shape=(64, 64, 3), dtype=np.uint8)
         self.dimension_size = dimension_size
@@ -84,7 +84,6 @@ class GridWorldEnv(gym.Env):
 
         self.all_targets = None
         self._initialized = False
-        self._init_obs()
 
 
         self.building_zone = self.obs[0]
@@ -128,6 +127,7 @@ class GridWorldEnv(gym.Env):
 
         self.timestep_elapsed = 0
 
+        self._init_obs()
 
         np.copyto(self.obs[2], random.choice(self.all_targets))
         obs = self.get_obs(0)
@@ -718,8 +718,6 @@ def test(env, agent_id):
     env.render()
 
     
-    
-    
     return
 
 if __name__ == "__main__":
@@ -728,7 +726,7 @@ if __name__ == "__main__":
     # 2: left, 3: right
     # 4: up, 5: down
     # 6: place block
-    env = GridWorldEnv(4, 1, debug=True)
+    env = GridWorldEnv(4, path="/home/truong/Documents/pytorch/Deep-Reinforcement-Learning-agent-for-Construction-Project-Execution/benchmarks/targets" , num_agents=1, debug=True)
 
     # test move
     #testMove(env, 0)
