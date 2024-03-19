@@ -571,6 +571,7 @@ class GridWorldEnv(gym.Env):
             else:
                 return obs, R, terminated, truncated, {}
         elif action == self.action_enum.PLACE_COLUMN:  # place command
+            print("place column")
             R = -1.5
             terminated = False
             truncated = False
@@ -594,7 +595,7 @@ class GridWorldEnv(gym.Env):
                     R += 1.25
             else:
                 R = -10
-
+            print("isvalid column", is_valid)
             obs = self.get_obs(agent_id)
             #self.mutex.release()
             # check if structure is complete
@@ -672,7 +673,7 @@ class GridWorldEnv(gym.Env):
         colors[col_cube] = '#7A88CCC0'
         colors[agent_position_cube] = '#FFD65DC0'
         colors[beam_cube] = '#FF5733C0'
-        colors[scaffold_cube] = '#FFD65DC0'
+        colors[scaffold_cube] = 'pink'
         # print(colors)
 
         ax = fig.add_subplot(1, 2, 1, projection='3d')
