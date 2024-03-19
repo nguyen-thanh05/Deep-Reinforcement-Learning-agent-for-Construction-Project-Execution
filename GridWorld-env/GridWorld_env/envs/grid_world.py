@@ -345,7 +345,7 @@ class GridWorldEnv(gym.Env):
                     break
 
         # If the space is already occupied
-        duplicate_block = self.building_zone[current_pos[0], current_pos[1], current_pos[2]] == GridWorldEnv.SCAFFOLD
+        duplicate_block = self.building_zone[current_pos[0], current_pos[1], current_pos[2]] != GridWorldEnv.EMPTY
         if supporting_neighbour and not duplicate_block:
             return True
         return False
@@ -586,10 +586,11 @@ class GridWorldEnv(gym.Env):
             elif current_pos[2] == 0:
                 is_valid = True
             # Case 2, on the scaffold and there is column block below
-            elif self._supportingBlockExist(current_pos) and self._columnExist((current_pos[0], current_pos[1], current_pos[2] - 1)):
+            elif self._supportingBlockExist(current_pos): #and self._columnExist((current_pos[0], current_pos[1], current_pos[2] - 1)):
                 is_valid = True
                 
             if is_valid:
+                print("valid place column")
                 self.building_zone[current_pos[0], current_pos[1], current_pos[2]] = GridWorldEnv.COL_BLOCK
 
                 if  self.target[current_pos[0], current_pos[1], current_pos[2]] == self.building_zone[current_pos[0], current_pos[1], current_pos[2]]:
