@@ -576,7 +576,7 @@ class GridWorldEnv(gym.Env):
             is_valid = False
             
             # if there is already a block or a scaffold in the position
-            if self.building_zone[current_pos[0], current_pos[1], current_pos[2]] == GridWorldEnv.SCAFFOLD or self.building_zone[current_pos[0], current_pos[1], current_pos[2]] == GridWorldEnv.BLOCK:
+            if self.building_zone[current_pos[0], current_pos[1], current_pos[2]] == GridWorldEnv.SCAFFOLD or self._isInBlock(current_pos):
                 is_valid = False
             
             # Check if there is proper support. Case 1, on the floor
@@ -616,7 +616,7 @@ class GridWorldEnv(gym.Env):
                 return self.get_obs(agent_id), -5, False, self.timestep_elapsed > MAX_TIMESTEP, {}
             else:
                 # if there is already a block or a scaffold in the position
-                if self.building_zone[current_pos[0], current_pos[1], current_pos[2]] == GridWorldEnv.SCAFFOLD or self.building_zone[current_pos[0], current_pos[1], current_pos[2]] == GridWorldEnv.BLOCK:
+                if self.building_zone[current_pos[0], current_pos[1], current_pos[2]] == GridWorldEnv.SCAFFOLD or self._isInBlock(current_pos):
                     is_valid = False
                 
                 # Check if there is proper support. Case 1, on the floor
