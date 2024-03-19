@@ -1,4 +1,5 @@
 # scafold gridworld with column and beam
+from turtle import color
 import gymnasium as gym
 import random
 from gymnasium import spaces
@@ -655,27 +656,27 @@ class GridWorldEnv(gym.Env):
     def render(self):
         # acumulate all agents position
         agent_pos_grid = np.zeros((self.dimension_size, self.dimension_size, self.dimension_size), dtype=int)
-        for i in range(self.num_agents):
-            agent_pos_grid[self.AgentsPos[i][0], self.AgentsPos[i][1], self.AgentsPos[i][2]] = 1
+        agent_pos_grid[self.AgentsPos[0][0], self.AgentsPos[0][1], self.AgentsPos[0][2]] = 1
 
         # prepare some coordinates
-        scaffold_cube = self.building_zone == -2
         col_cube = self.building_zone == GridWorldEnv.COL_BLOCK
         beam_cube = self.building_zone == GridWorldEnv.BEAM_BLOCK
+        scaffold_cube = self.building_zone == GridWorldEnv.SCAFFOLD
         agent_position_cube = agent_pos_grid == 1
 
         fig = plt.figure()
 
-        final_rendering_cube =  agent_position_cube | scaffold_cube | col_cube | beam_cube
+        building_zone_render = col_cube | agent_position_cube | beam_cube | scaffold_cube
         # set the colors of each object
-        colors = np.empty(final_rendering_cube.shape, dtype=object)
+        colors = np.empty(building_zone_render.shape, dtype=object)
         colors[col_cube] = '#7A88CCC0'
         colors[agent_position_cube] = '#FFD65DC0'
         colors[beam_cube] = '#FF5733C0'
-        colors[scaffold_cube] = '#FFC300C0'
+        colors[scaffold_cube] = '#FFD65DC0'
+        # print(colors)
 
         ax = fig.add_subplot(1, 2, 1, projection='3d')
-        ax.voxels(final_rendering_cube, facecolors=colors, edgecolor='k')
+        ax.voxels(building_zone_render, facecolors=colors, edgecolor='k')
 
         col_cube = self.target == GridWorldEnv.COL_BLOCK
         beam_cube = self.target == GridWorldEnv.BEAM_BLOCK
@@ -684,11 +685,12 @@ class GridWorldEnv(gym.Env):
         colors = np.empty(target_render.shape, dtype=object)
         colors[col_cube] = '#7A88CCC0'
         colors[beam_cube] = '#FF5733C0'
-
         ax = fig.add_subplot(1, 2, 2, projection='3d')
         ax.voxels(target_render, facecolors=colors, edgecolor='k')
-        
+
         plt.show()
+
+  
 
     
     def close(self):
