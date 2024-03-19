@@ -1,10 +1,11 @@
+# scafold gridworld with column and beam
 import gymnasium as gym
+import random
 from gymnasium import spaces
 import numpy as np
 import matplotlib.pyplot as plt
-from target_loader import TargetLoader
 MAX_TIMESTEP = 800
-
+from target_loader import TargetLoader
 
 #import Lock
 from threading import Lock
@@ -20,7 +21,9 @@ class Action:
     DOWN = 5
     PLACE_SCAFOLD = 6
     REMOVE_SCAFOLD = 7
-    PLACE_BLOCK = 8
+    PLACE_BEAM = 8
+    PLACE_COLUMN = 9
+
 
 action_enum = Action
 
@@ -57,11 +60,12 @@ class GridWorldEnv(gym.Env):
     """
     neighbors = [[-1, 0, 0], [1, 0, 0], [0, -1, 0], [0, 1, 0], [0, 0, -1], [0, 0, 1]]
     SCAFFOLD = -2
-    BLOCK = -1
     EMPTY = 0
+
+    COL_BLOCK = 1
+    BEAM_BLOCK = 2
     
-    
-    def __init__(self, dimension_size, num_agents=1, debug=False):
+    def __init__(self, dimension_size, num_agents=1, path:str , debug=False):
         self.action_enum = Action
         self.observation_space = spaces.Box(low=0, high=255, shape=(64, 64, 3), dtype=np.uint8)
         self.dimension_size = dimension_size
@@ -78,7 +82,11 @@ class GridWorldEnv(gym.Env):
             self.obs = np.zeros((1 + num_agents + 1 + 1, self.dimension_size, self.dimension_size, self.dimension_size), 
                                 dtype=int)
 
-        
+        self.all_targets = None
+        self._initialized = False
+        self._init_obs()
+
+
         self.building_zone = self.obs[0]
         self.agent_pos_grid = []
         for i in range(1, num_agents + 1):
@@ -87,9 +95,10 @@ class GridWorldEnv(gym.Env):
         self.target = self.obs[-1]
         #self.all_agent_position = self.obs[-1]
         
+        self.loader = TargetLoader(path)
+
         self.mutex = Lock()
         self.num_agents = num_agents
-
 
         self.reset()
         
@@ -100,8 +109,9 @@ class GridWorldEnv(gym.Env):
     # in multiagent, make sure only one agent is allowed to call this function(meta agent for example)
     def reset(self, seed=None, options=None):
         self.mutex.acquire()  # get lock to enter critical section
-        self.building_zone = np.zeros((self.dimension_size, self.dimension_size, self.dimension_size), dtype=int)
+        self.building_zone.fill(0)
         self.finished_structure = False
+
         self.AgentsPos = np.zeros((self.num_agents, 3), dtype=int)
 
         random_start_pos = np.zeros(3, dtype=int)
@@ -119,12 +129,13 @@ class GridWorldEnv(gym.Env):
         self.timestep_elapsed = 0
 
 
+        np.copyto(self.obs[2], random.choice(self.all_targets))
         obs = self.get_obs(0)
         self.mutex.release()
         return obs, {}
 
     # return (3 x N x N x N) tensor for now, 
-    def get_obs(self, agent_id):
+    def get_obs(self, agent_id=0):
         # clear agent_pos_grid
         agent_pos_grid = np.zeros((self.dimension_size, self.dimension_size, self.dimension_size), dtype=int)
         agent_pos_grid[self.AgentsPos[agent_id][0], self.AgentsPos[agent_id][1], self.AgentsPos[agent_id][2]] = 1
@@ -140,6 +151,19 @@ class GridWorldEnv(gym.Env):
         
     def _get_info(self):
         pass
+
+    def _init_obs(self):
+        if self._initialized:
+            return
+        self.all_targets = self.loader.load_all()
+
+        assert len(self.all_targets) > 0, "No target found\n"
+        for i in range(len(self.all_targets)):
+            assert self.all_targets[i].shape[0] == self.dimension_size, \
+                (f"Dimension mismatch: Target: {self.all_targets[i].shape}, "
+                 f"Environment: {self.dimension_size}\n"
+                 "TODO: more flexibility")
+        self._initialized = True
 
     def _placeBlockInBuildingZone(self):
         # place some block in building zone for testing
@@ -199,13 +223,23 @@ class GridWorldEnv(gym.Env):
 
 
     def _isInScaffoldingDomain(self, pos):
-        if (self.building_zone[pos[0], pos[1], pos[2]] == -2):
+        if (self.building_zone[pos[0], pos[1], pos[2]] == GridWorldEnv.SCAFFOLD):
             return True
         return False 
     def _isInBlock(self, pos):
-        if (self.building_zone[pos[0], pos[1], pos[2]] == -1):
+        if (self.building_zone[pos[0], pos[1], pos[2]] == GridWorldEnv.COL_BLOCK or self.building_zone[pos[0], pos[1], pos[2]] == GridWorldEnv.BEAM_BLOCK):
             return True
         return False
+    def _columnExist(self, pos):
+        if (self.building_zone[pos[0], pos[1], pos[2]] == GridWorldEnv.COL_BLOCK):
+            return True
+        return False
+
+    def _beamExist(self, pos):
+        if (self.building_zone[pos[0], pos[1], pos[2]] == GridWorldEnv.BEAM_BLOCK):
+            return True
+        return False
+
     # position is not in any block or scaffolding
     def _isInNothing(self, pos):
         if (self.building_zone[pos[0], pos[1], pos[2]] == 0):
@@ -228,8 +262,6 @@ class GridWorldEnv(gym.Env):
         # pos is the new position we ended up after moving
         #assert(self.building_zone[pos[0], pos[1], pos[2] - 1] == 0)  # there is no block below
         
-
-
         """
             (us)    pos[2]
         ----
@@ -403,23 +435,35 @@ class GridWorldEnv(gym.Env):
         #if currentPos[2] > 0 and self.building_zone[currentPos[0], currentPos[1], currentPos[2] - 1] == -1:
         #    supporting_neighbour = True
         return supporting_neighbour
+
+
+    def _check_columns_finish(self):
+        """
+        eg:
+            building_zone = [0, 0, 1, -2] 1 is coloumn
+            target        = [0, 1, 1, 2]
+
+            diff = [0, -1, 0, -4]
+
+            np.isIn(diff, -1) = [false, true, false, false]
+
+            so column is done if there are no difference of -1
+            (i, j) with difference of -1 means we placed nothing here but there should be column block here
+        """
+        difference = self.building_zone - self.target
+
+        difference = np.isin(difference, -GridWorldEnv.COL_BLOCK)
+        if np.any(difference):
+            return False
+        return True
     
     def _isDoneBuildingStructure(self):
-        # check if target is complete, we disregard scaffolding blocks
-        # check if self.target == self.building_zone but disregard scaffolding blocks
-        # TODO: make it more efficient, perhaps use numpy array method
-        #for i in range(self.dimension_size):
-        #    for j in range(self.dimension_size):
-        #        for k in range(self.dimension_size):
-        #            if (self.target[i, j, k] == -1 and self.building_zone[i, j, k] != -1):
-        #                return False
-        # do a 
-        
-        # if block = 1 and scaffold = 0.5, then target - building_zone = 0 when the structure is complete. scaffold will become -(-0.5) = 0.5
-        # and the not yet built block will become 1 - 0 = 1
-        difference = self.target - self.building_zone
-        difference = np.isin(difference, 1)
-        if not np.any(difference):
+
+        # building_zone[self.target != 0] is an array indexed by non zero element from target
+        # if  building_zone[self.target != 0] has 0 element, check_done[i, j] = True
+        check_done = np.isin(self.building_zone[self.target != 0], 0)
+        # done if there are no 0 elements when index building_zone with non zero entry in target
+        if not np.any(check_done):  
             return True
         return False
 
@@ -525,12 +569,11 @@ class GridWorldEnv(gym.Env):
                 return obs, R, terminated, truncated, {}
             else:
                 return obs, R, terminated, truncated, {}
-        elif action == self.action_enum.PLACE_BLOCK:  # place command
+        elif action == self.action_enum.PLACE_COLUMN:  # place command
             R = -1.5
             terminated = False
             truncated = False
             is_valid = False
-            
             
             # if there is already a block or a scaffold in the position
             if self.building_zone[current_pos[0], current_pos[1], current_pos[2]] == GridWorldEnv.SCAFFOLD or self.building_zone[current_pos[0], current_pos[1], current_pos[2]] == GridWorldEnv.BLOCK:
@@ -539,48 +582,23 @@ class GridWorldEnv(gym.Env):
             # Check if there is proper support. Case 1, on the floor
             elif current_pos[2] == 0:
                 is_valid = True
-            # Case 2, on the scaffold
-            elif self._supportingBlockExist(current_pos):
+            # Case 2, on the scaffold and there is column block below
+            elif self._supportingBlockExist(current_pos) and self._columnExist((current_pos[0], current_pos[1], current_pos[2] - 1)):
                 is_valid = True
                 
             if is_valid:
-                self.building_zone[current_pos[0], current_pos[1], current_pos[2]] = GridWorldEnv.BLOCK
+                self.building_zone[current_pos[0], current_pos[1], current_pos[2]] = GridWorldEnv.COL_BLOCK
 
                 if  self.target[current_pos[0], current_pos[1], current_pos[2]] == self.building_zone[current_pos[0], current_pos[1], current_pos[2]]:
                     R += 1.25
             else:
                 R = -10
-                
-            
-            """if (self._isValidPlace(action, current_pos, agent_id)):  # for no scaffold place
-                place_pos = None
-                if action == self.action_enum.PLACE_FORWARD:
-                    place_pos = current_pos + [1, 0, 0]
-                elif action == self.action_enum.PLACE_BACKWARD:
-                    place_pos = current_pos + [-1, 0, 0]
-                elif action == self.action_enum.PLACE_LEFT:
-                    place_pos = current_pos + [0, -1, 0]
-                elif action == self.action_enum.PLACE_RIGHT:
-                    place_pos = current_pos + [0, 1, 0]
-                else :
-                    raise ValueError("Invalid action")
-                self.building_zone[place_pos[0], place_pos[1], place_pos[2]] = -1  # place block
-
-                is_valid = True
-                # rightTrack = 1 if agent placed block in the right position
-                rightTrack = self.building_zone[place_pos[0], place_pos[1], place_pos[2]] == self.target[place_pos[0], place_pos[1], place_pos[2]]
-                if rightTrack:
-                    R = -0.1
-                else:
-                    R = -1.5
-            else:  # invalid placement
-                R = -5"""
 
             obs = self.get_obs(agent_id)
             #self.mutex.release()
             # check if structure is complete
             if (is_valid and self._isDoneBuildingStructure()):  #  only do terminal check if we placed a block to save computation
-                #terminated = True
+                terminated = True
                 R = 10
                 self.finished_structure = True
             if self.timestep_elapsed > MAX_TIMESTEP:
@@ -588,6 +606,48 @@ class GridWorldEnv(gym.Env):
                 return obs, R, terminated, truncated, {}
             else:
                 return obs, R, terminated, truncated, {}
+        elif action == self.action_enum.PLACE_BEAM:
+            R = -1.5
+            terminated = False
+            truncated = False
+            is_valid = False
+            # case: havent fnished column block yet
+            if not self._check_columns_finish():
+                return self.get_obs(agent_id), -5, False, self.timestep_elapsed > MAX_TIMESTEP, {}
+            else:
+                # if there is already a block or a scaffold in the position
+                if self.building_zone[current_pos[0], current_pos[1], current_pos[2]] == GridWorldEnv.SCAFFOLD or self.building_zone[current_pos[0], current_pos[1], current_pos[2]] == GridWorldEnv.BLOCK:
+                    is_valid = False
+                
+                # Check if there is proper support. Case 1, on the floor
+                elif current_pos[2] == 0:
+                    is_valid = True
+                # Case 2, on the scaffold
+                elif self._supportingBlockExist(current_pos):
+                    is_valid = True
+                    
+                if is_valid:
+                    self.building_zone[current_pos[0], current_pos[1], current_pos[2]] = GridWorldEnv.BEAM_BLOCK
+                    if  self.target[current_pos[0], current_pos[1], current_pos[2]] == self.building_zone[current_pos[0], current_pos[1], current_pos[2]]:
+                        R += 1.25
+                else:
+                    R = -10
+
+                obs = self.get_obs(agent_id)
+                #self.mutex.release()
+                # check if structure is complete
+                if (is_valid and self._isDoneBuildingStructure()):  #  only do terminal check if we placed a block to save computation
+                    terminated = True
+                    R = 10
+                    self.finished_structure = True
+                if self.timestep_elapsed > MAX_TIMESTEP:
+                    truncated = True
+                    return obs, R, terminated, truncated, {}
+                else:
+                    return obs, R, terminated, truncated, {}
+
+        return
+
         
  
     
@@ -627,7 +687,6 @@ class GridWorldEnv(gym.Env):
     def close(self):
         pass
     
-
 
 
 
