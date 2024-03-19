@@ -27,10 +27,7 @@ cd visualization/build/bin                       # If not already in build/bin
 # <s|l>          : whether to save to file or load from file
 # <file_name>    : file to load from / save to 
 #
-# NOTE: Loading from file assumes the file is in the visualization/targets
-# directory, no need to prefix it with relative path.
-# Writing to file also assumes the name contains no prefix,
-# will place the file into visualization/targets
+# NOTE: Loading and saving file location is relative to the executable
 ```
 
 ## WIP
