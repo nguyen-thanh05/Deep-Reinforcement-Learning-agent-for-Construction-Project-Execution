@@ -686,7 +686,7 @@ class GridWorldEnv(gym.Env):
         colors[beam_cube] = '#FF5733C0'
 
         ax = fig.add_subplot(1, 2, 2, projection='3d')
-        ax.voxels(target_cube, facecolors=colors, edgecolor='k')
+        ax.voxels(target_render, facecolors=colors, edgecolor='k')
         
         plt.show()
 
