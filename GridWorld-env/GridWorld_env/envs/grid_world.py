@@ -121,7 +121,7 @@ class GridWorldEnv(gym.Env):
             random_start_pos[2] = 0
             self.AgentsPos[i] = random_start_pos
             #self.building_zone[random_start_pos[0], random_start_pos[1], random_start_pos[2]] = 1  # encode agents position on the building zone
-        self.action_space = spaces.Discrete(9)   
+        self.action_space = spaces.Discrete(10)   
         self._init_target()
         
         self.observation_space = spaces.Box(low=0, high=1, shape=(3, self.dimension_size, self.dimension_size, self.dimension_size), dtype=int)
@@ -735,7 +735,7 @@ if __name__ == "__main__":
     # 2: left, 3: right
     # 4: up, 5: down
     # 6: place block
-    env = GridWorldEnv(4, path="/home/truong/Documents/pytorch/Deep-Reinforcement-Learning-agent-for-Construction-Project-Execution/benchmarks/targets" , num_agents=1, debug=True)
+    env = GridWorldEnv(4, path="targets" , num_agents=1, debug=True)
 
     # test move
     #testMove(env, 0)
