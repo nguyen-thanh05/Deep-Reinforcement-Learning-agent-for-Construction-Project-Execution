@@ -88,12 +88,11 @@ class GridWorldEnv(gym.Env):
 
 
         self.building_zone = self.obs[0]
-        self.agent_pos_grid = []
-        for i in range(1, num_agents + 1):
-            self.agent_pos_grid.append(self.obs[i])
+        self.agent_pos_grid = self.obs[1]
         
-        self.target = self.obs[-1]
+        self.target = self.obs[2]
         #self.all_agent_position = self.obs[-1]
+       
         
         self.loader = TargetLoader(path)
 
@@ -122,8 +121,9 @@ class GridWorldEnv(gym.Env):
             self.AgentsPos[i] = random_start_pos
             #self.building_zone[random_start_pos[0], random_start_pos[1], random_start_pos[2]] = 1  # encode agents position on the building zone
         self.action_space = spaces.Discrete(10)   
-        self._init_target()
+        #self._init_target()
         
+        self.record_sequence = []
         self.observation_space = spaces.Box(low=0, high=1, shape=(3, self.dimension_size, self.dimension_size, self.dimension_size), dtype=int)
 
         self.timestep_elapsed = 0
@@ -138,9 +138,10 @@ class GridWorldEnv(gym.Env):
     # return (3 x N x N x N) tensor for now, 
     def get_obs(self, agent_id=0):
         # clear agent_pos_grid
-        agent_pos_grid = np.zeros((self.dimension_size, self.dimension_size, self.dimension_size), dtype=int)
-        agent_pos_grid[self.AgentsPos[agent_id][0], self.AgentsPos[agent_id][1], self.AgentsPos[agent_id][2]] = 1
-
+        self.agent_pos_grid.fill(0)
+        #agent_pos_grid = np.zeros((self.dimension_size, self.dimension_size, self.dimension_size), dtype=int)
+        #agent_pos_grid[self.AgentsPos[agent_id][0], self.AgentsPos[agent_id][1], self.AgentsPos[agent_id][2]] = 1
+        self.agent_pos_grid[self.AgentsPos[agent_id][0], self.AgentsPos[agent_id][1], self.AgentsPos[agent_id][2]] = 1
 
         other_agents_pos_grid = np.zeros((self.dimension_size, self.dimension_size, self.dimension_size), dtype=int)
         for i in range(self.num_agents):
@@ -148,7 +149,8 @@ class GridWorldEnv(gym.Env):
                 other_agents_pos_grid[self.AgentsPos[i][0], self.AgentsPos[i][1], self.AgentsPos[i][2]] = 1
 
         #TODO: concat other_agents_pos_grid when doing multiagent
-        return np.stack((self.building_zone, agent_pos_grid, self.target), axis=0)
+        #return np.stack((self.building_zone, agent_pos_grid, self.target), axis=0)
+        return self.obs
         
     def _get_info(self):
         pass
@@ -571,7 +573,6 @@ class GridWorldEnv(gym.Env):
             else:
                 return obs, R, terminated, truncated, {}
         elif action == self.action_enum.PLACE_COLUMN:  # place command
-            print("place column")
             R = -1.5
             terminated = False
             truncated = False
@@ -595,7 +596,6 @@ class GridWorldEnv(gym.Env):
                     R += 1.25
             else:
                 R = -10
-            print("isvalid column", is_valid)
             obs = self.get_obs(agent_id)
             #self.mutex.release()
             # check if structure is complete
