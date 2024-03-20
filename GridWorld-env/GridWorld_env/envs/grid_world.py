@@ -5,7 +5,7 @@ import random
 from gymnasium import spaces
 import numpy as np
 import matplotlib.pyplot as plt
-MAX_TIMESTEP = 800
+MAX_TIMESTEP = 1500
 from target_loader import TargetLoader
 
 #import Lock
