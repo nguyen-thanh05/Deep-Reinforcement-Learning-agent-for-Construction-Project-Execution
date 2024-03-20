@@ -127,7 +127,6 @@ class GridWorldEnv(gym.Env):
         self.observation_space = spaces.Box(low=0, high=1, shape=(3, self.dimension_size, self.dimension_size, self.dimension_size), dtype=int)
 
         self.timestep_elapsed = 0
-
         self._init_obs()
 
         np.copyto(self.obs[2], random.choice(self.all_targets))
@@ -175,7 +174,7 @@ class GridWorldEnv(gym.Env):
 
     def _placeAgentInBuildingZone(self):
         # place some agent in building zone for testing
-        self.AgentsPos[0] = [0, self.dimension_size // 2, 0]
+        self.AgentsPos[0] = [self.dimension_size//2, self.dimension_size//2, 0]
         return
 
     def _init_target(self):
@@ -586,11 +585,10 @@ class GridWorldEnv(gym.Env):
             elif current_pos[2] == 0:
                 is_valid = True
             # Case 2, on the scaffold and there is column block below
-            elif self._supportingBlockExist(current_pos): #and self._columnExist((current_pos[0], current_pos[1], current_pos[2] - 1)):
+            elif self._supportingBlockExist(current_pos) and self._columnExist((current_pos[0], current_pos[1], current_pos[2] - 1)):
                 is_valid = True
                 
             if is_valid:
-                print("valid place column")
                 self.building_zone[current_pos[0], current_pos[1], current_pos[2]] = GridWorldEnv.COL_BLOCK
 
                 if  self.target[current_pos[0], current_pos[1], current_pos[2]] == self.building_zone[current_pos[0], current_pos[1], current_pos[2]]:
