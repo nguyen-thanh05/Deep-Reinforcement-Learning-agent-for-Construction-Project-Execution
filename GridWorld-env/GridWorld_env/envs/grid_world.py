@@ -110,6 +110,7 @@ class GridWorldEnv(gym.Env):
         self.mutex.acquire()  # get lock to enter critical section
         self.building_zone.fill(0)
         self.finished_structure = False
+        self.finished_structure_reward_used = False
 
         self.AgentsPos = np.zeros((self.num_agents, 3), dtype=int)
 
@@ -612,7 +613,18 @@ class GridWorldEnv(gym.Env):
             # check if structure is complete
             if (is_valid and self._isDoneBuildingStructure()):  #  only do terminal check if we placed a block to save computation
                 #terminated = True
-                R = 10
+                if np.array_equal(self.building_zone, self.target):
+                    terminated = True
+
+
+                if (self.finished_structure_reward_used):
+                    # if agent placed block after the structure is done
+                    R = -5
+                else:
+                    R = 10
+                    self.finished_structure_reward_used = True
+
+
                 self.finished_structure = True
             if self.timestep_elapsed > MAX_TIMESTEP:
                 truncated = True
