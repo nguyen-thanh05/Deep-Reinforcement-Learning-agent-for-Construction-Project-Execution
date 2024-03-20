@@ -551,9 +551,9 @@ class GridWorldEnv(gym.Env):
             return obs, R, terminated, truncated, {}
             
         elif (action == self.action_enum.REMOVE_SCAFOLD):
-            R = -0.25
+            R = -1.5
             if self.finished_structure:
-                R = 0.25
+                R = 1.5
             terminated = False
             truncated = False
             is_valid = False
@@ -603,7 +603,7 @@ class GridWorldEnv(gym.Env):
                 self.building_zone[current_pos[0], current_pos[1], current_pos[2]] = GridWorldEnv.COL_BLOCK
 
                 if  self.target[current_pos[0], current_pos[1], current_pos[2]] == self.building_zone[current_pos[0], current_pos[1], current_pos[2]]:
-                    R = -0.5
+                    R = -0.25
                 else:
                     R = -1.5
             else:
@@ -655,7 +655,7 @@ class GridWorldEnv(gym.Env):
                     self.building_zone[current_pos[0], current_pos[1], current_pos[2]] = GridWorldEnv.BEAM_BLOCK
                     if  self.target[current_pos[0], current_pos[1], current_pos[2]] == self.building_zone[current_pos[0], current_pos[1], current_pos[2]]:
                         # good placement R = -1.5 + 1.25 = -0.25
-                        R = -0.5
+                        R = -0.25
                     else:
                         R = -1.5
                 else:
