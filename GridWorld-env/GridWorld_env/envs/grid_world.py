@@ -504,7 +504,7 @@ class GridWorldEnv(gym.Env):
                        self.action_enum.LEFT,
                        self.action_enum.UP,
                        self.action_enum.DOWN]):  # move action
-            R = -0.5
+            R = -1.25
             terminated = False
             truncated = False
             is_valid = False
@@ -525,7 +525,7 @@ class GridWorldEnv(gym.Env):
             return obs, R, terminated, truncated, {}
 
         elif (action == self.action_enum.PLACE_SCAFOLD):
-            R = -0.5
+            R = -0.75
             terminated = False
             truncated = False
             is_valid = False
@@ -536,21 +536,23 @@ class GridWorldEnv(gym.Env):
 
             obs = self.get_obs(agent_id)
 #            self.mutex.release()
-            if not is_valid: R = -10
+            if not is_valid: R = -5
             if self.timestep_elapsed > MAX_TIMESTEP:
                 truncated = True
 
-            if is_valid and self.target[current_pos[0], current_pos[1], current_pos[2]] != GridWorldEnv.EMPTY:
-                # case: if we placed a scafold on the target
-                R = -5
-            else:
-                # we place scafold on non target
-                R = -0.25
+            #if is_valid and self.target[current_pos[0], current_pos[1], current_pos[2]] != GridWorldEnv.EMPTY:
+            #    # case: if we placed a scafold on the target
+            #    R = -2
+            #else:
+            #    # we place scafold on non target
+            #    R = -0.75
 
             return obs, R, terminated, truncated, {}
             
         elif (action == self.action_enum.REMOVE_SCAFOLD):
             R = -0.25
+            if self.finished_structure:
+                R = 0.25
             terminated = False
             truncated = False
             is_valid = False
@@ -580,7 +582,7 @@ class GridWorldEnv(gym.Env):
             else:
                 return obs, R, terminated, truncated, {}
         elif action == self.action_enum.PLACE_COLUMN:  # place command
-            R = -1.5
+            R = -0.5
             terminated = False
             truncated = False
             is_valid = False
@@ -600,16 +602,16 @@ class GridWorldEnv(gym.Env):
                 self.building_zone[current_pos[0], current_pos[1], current_pos[2]] = GridWorldEnv.COL_BLOCK
 
                 if  self.target[current_pos[0], current_pos[1], current_pos[2]] == self.building_zone[current_pos[0], current_pos[1], current_pos[2]]:
-                    R = -0.25
+                    R = -0.5
                 else:
-                    R = -2
+                    R = -1.5
             else:
                 R = -5
             obs = self.get_obs(agent_id)
             #self.mutex.release()
             # check if structure is complete
             if (is_valid and self._isDoneBuildingStructure()):  #  only do terminal check if we placed a block to save computation
-                terminated = True
+                #terminated = True
                 R = 10
                 self.finished_structure = True
             if self.timestep_elapsed > MAX_TIMESTEP:
@@ -618,7 +620,7 @@ class GridWorldEnv(gym.Env):
             else:
                 return obs, R, terminated, truncated, {}
         elif action == self.action_enum.PLACE_BEAM:
-            R = -1.5
+            R = -0.5
             terminated = False
             truncated = False
             is_valid = False
@@ -641,9 +643,9 @@ class GridWorldEnv(gym.Env):
                     self.building_zone[current_pos[0], current_pos[1], current_pos[2]] = GridWorldEnv.BEAM_BLOCK
                     if  self.target[current_pos[0], current_pos[1], current_pos[2]] == self.building_zone[current_pos[0], current_pos[1], current_pos[2]]:
                         # good placement R = -1.5 + 1.25 = -0.25
-                        R = -0.25
+                        R = -0.5
                     else:
-                        R = -2
+                        R = -1.5
                 else:
                     R = -5
 
