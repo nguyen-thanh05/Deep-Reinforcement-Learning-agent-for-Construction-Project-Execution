@@ -26,8 +26,16 @@ class Action:
     PLACE_COLUMN = 9
 
 
+
 action_enum = Action
 
+class Reward:
+    def __init__(self):
+        self.MIN_REWARD = -5
+        self.MAX_REWARD = 10
+    def normalize_reward(self,  rew):
+        # normalize_reward between -1 and 1
+        return 2 * (rew - self.MIN_REWARD) / (self.MAX_REWARD - self.MIN_REWARD) - 1
 
 class GridWorldEnv(gym.Env): 
     """
@@ -68,6 +76,8 @@ class GridWorldEnv(gym.Env):
     
     def __init__(self, dimension_size, path: str, num_agents=1, debug=False):
         self.action_enum = Action
+        self.reward = Reward()
+
         self.observation_space = spaces.Box(low=0, high=255, shape=(64, 64, 3), dtype=np.uint8)
         self.dimension_size = dimension_size
         self.timestep_elapsed = 0
@@ -538,7 +548,7 @@ class GridWorldEnv(gym.Env):
             #if not isValid: R = -1
             if self.timestep_elapsed > MAX_TIMESTEP:
                 truncated = True    
-            return obs, R, terminated, truncated, {}
+            return obs, self.reward.normalize_reward(R), terminated, truncated, {}
 
         elif (action == self.action_enum.PLACE_SCAFOLD):
             R = -1.25
@@ -563,7 +573,7 @@ class GridWorldEnv(gym.Env):
             #    # we place scafold on non target
             #    R = -0.75
 
-            return obs, R, terminated, truncated, {}
+            return obs, self.reward.normalize_reward(R), terminated, truncated, {}
             
         elif (action == self.action_enum.REMOVE_SCAFOLD):
             R = -1.25
@@ -594,9 +604,9 @@ class GridWorldEnv(gym.Env):
             if not is_valid: R = -5
             if self.timestep_elapsed > MAX_TIMESTEP:
                 truncated = True
-                return obs, R, terminated, truncated, {}
+                return obs, self.reward.normalize_reward(R), terminated, truncated, {}
             else:
-                return obs, R, terminated, truncated, {}
+                return obs, self.reward.normalize_reward(R), terminated, truncated, {}
         elif action == self.action_enum.PLACE_COLUMN:  # place command
             R = -0.5
             terminated = False
@@ -643,9 +653,9 @@ class GridWorldEnv(gym.Env):
                 self.finished_structure = True
             if self.timestep_elapsed > MAX_TIMESTEP:
                 truncated = True
-                return obs, R, terminated, truncated, {}
+                return obs, self.reward.normalize_reward(R), terminated, truncated, {}
             else:
-                return obs, R, terminated, truncated, {}
+                return obs, self.reward.normalize_reward(R), terminated, truncated, {}
         elif action == self.action_enum.PLACE_BEAM:
             R = -0.5
             terminated = False
@@ -653,7 +663,7 @@ class GridWorldEnv(gym.Env):
             is_valid = False
             # case: havent fnished column block yet
             if not self._check_columns_finish():
-                return self.get_obs(agent_id), -5, False, self.timestep_elapsed > MAX_TIMESTEP, {}
+                return self.get_obs(agent_id), self.reward.normalize_reward(-5), False, self.timestep_elapsed > MAX_TIMESTEP, {}
             else:
                 # if there is already a block or a scaffold in the position
                 if self.building_zone[current_pos[0], current_pos[1], current_pos[2]] == GridWorldEnv.SCAFFOLD or self._isInBlock(current_pos):
@@ -685,9 +695,9 @@ class GridWorldEnv(gym.Env):
                     self.finished_structure = True
                 if self.timestep_elapsed > MAX_TIMESTEP:
                     truncated = True
-                    return obs, R, terminated, truncated, {}
+                    return obs, self.reward.normalize_reward(R), terminated, truncated, {}
                 else:
-                    return obs, R, terminated, truncated, {}
+                    return obs, self.reward.normalize_reward(R), terminated, truncated, {}
 
         return
 
