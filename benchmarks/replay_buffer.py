@@ -2,7 +2,7 @@ import numpy as np
 from collections import deque
 import operator
 import random
-
+import torch
 
 class SegmentTree:
     """ Create SegmentTree.
@@ -157,6 +157,8 @@ class ReplayBuffer:
         self.acts_buf = np.zeros([size], dtype=np.float32)
         self.rews_buf = np.zeros([size], dtype=np.float32)
         self.done_buf = np.zeros(size, dtype=np.float32)
+        self.h = torch.zeros(size, 1024, dtype=torch.float32)
+        self.c = torch.zeros(size, 1024, dtype=torch.float32)
         self.max_size, self.batch_size = size, batch_size
         self.ptr, self.size, = 0, 0
 
@@ -172,7 +174,9 @@ class ReplayBuffer:
             rew: float,
             next_obs: np.ndarray,
             done: bool,
-    ) -> tuple[np.ndarray, np.ndarray, float, np.ndarray, bool]:
+            h,
+            c
+    ): # -> tuple[np.ndarray, np.ndarray, float, np.ndarray, bool]:
         transition = (obs, act, rew, next_obs, done)
         self.n_step_buffer.append(transition)
 
@@ -191,6 +195,8 @@ class ReplayBuffer:
         self.acts_buf[self.ptr] = act
         self.rews_buf[self.ptr] = rew
         self.done_buf[self.ptr] = done
+        self.h[self.ptr] = h
+        self.c[self.ptr] = c
         self.ptr = (self.ptr + 1) % self.max_size
         self.size = min(self.size + 1, self.max_size)
 
@@ -205,6 +211,8 @@ class ReplayBuffer:
             acts=self.acts_buf[idxs],
             rews=self.rews_buf[idxs],
             done=self.done_buf[idxs],
+            h = self.h[idxs],
+            c = self.c[idxs],
             # for N-step Learning
             indices=idxs,
         )

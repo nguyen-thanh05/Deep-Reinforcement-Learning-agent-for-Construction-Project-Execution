@@ -526,7 +526,7 @@ class GridWorldEnv(gym.Env):
             return obs, R, terminated, truncated, {}
 
         elif (action == self.action_enum.PLACE_SCAFOLD):
-            R = -0.75
+            R = -1.25
             terminated = False
             truncated = False
             is_valid = False
@@ -551,9 +551,9 @@ class GridWorldEnv(gym.Env):
             return obs, R, terminated, truncated, {}
             
         elif (action == self.action_enum.REMOVE_SCAFOLD):
-            R = -1.5
+            R = -1.25
             if self.finished_structure:
-                R = 1.5
+                R = 1.25
             terminated = False
             truncated = False
             is_valid = False
@@ -576,7 +576,7 @@ class GridWorldEnv(gym.Env):
             # return obs, reward, done, info
             obs = self.get_obs(agent_id)
             #self.mutex.release()
-            if not is_valid: R = -1
+            if not is_valid: R = -5
             if self.timestep_elapsed > MAX_TIMESTEP:
                 truncated = True
                 return obs, R, terminated, truncated, {}
@@ -769,7 +769,9 @@ if __name__ == "__main__":
     #testScafold(env, 0)
     #testPlaceBlock(env, 0)
     #placeBrianScalfold(env, 0)
-    test(env, 0)
+    env.step((6, 0))
+    state, reward, terminated, done, info = env.step((7, 0))
+    print(reward)
     #testInvalidPlace(env, 0)
     #env.step(0)
     #env.step(6)
