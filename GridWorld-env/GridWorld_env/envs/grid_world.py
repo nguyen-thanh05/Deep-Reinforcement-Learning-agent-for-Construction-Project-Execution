@@ -60,11 +60,11 @@ class GridWorldEnv(gym.Env):
 
     """
     neighbors = [[-1, 0, 0], [1, 0, 0], [0, -1, 0], [0, 1, 0], [0, 0, -1], [0, 0, 1]]
-    SCAFFOLD = -2
+    SCAFFOLD = -1
     EMPTY = 0
 
-    COL_BLOCK = 1
-    BEAM_BLOCK = 2
+    COL_BLOCK = 0.5
+    BEAM_BLOCK = 1
     
     def __init__(self, dimension_size, path: str, num_agents=1, debug=False):
         self.action_enum = Action
@@ -443,20 +443,35 @@ class GridWorldEnv(gym.Env):
     def _check_columns_finish(self):
         """
         eg:
-            building_zone = [0, 0, 1, -2] 1 is coloumn
-            target        = [0, 1, 1, 2]
+            building_zone = [0, 0, 0.5, -1] 0.5 is coloumn
+            target        = [0, 0.5, 0.5, 1]  -1 is scafold, 1 is beam
 
-            diff = [0, -1, 0, -4]
+            diff = [0, -0.5, 0, -2]  
 
-            np.isIn(diff, -1) = [false, true, false, false]
+            np.isIn(diff, -COL_BLOCK= -0.5) = [false, true, false, false]
 
             so column is done if there are no difference of -1
             (i, j) with difference of -1 means we placed nothing here but there should be column block here
+
+
+            edge case: when scafold is covering all the column block space
+            building_zone = [0, -1, -1, 0] 0.5 is coloumn
+            target        = [0, 0.5, 0.5, 0]  -1 is scafold, 1 is beam
+
+            diff = [0, -1.5, -1.5, 0]
+
+            scafolddiff = [false, true, true, false]
+
         """
-        difference = self.building_zone - self.target
+        difference = self.building_zone - self.target # entry is true if buildingzone is empty but should have column block
 
         difference = np.isin(difference, -GridWorldEnv.COL_BLOCK)
-        if np.any(difference):
+
+        # entry is true if we placed a scafold where colum suppose to be
+        scafoldDiff = np.isin(difference,  GridWorldEnv.SCAFFOLD - GridWorldEnv.COL_BLOCK)
+
+        # check if 
+        if np.any(difference) or np.any(scafoldDiff):
             return False
         return True
     
