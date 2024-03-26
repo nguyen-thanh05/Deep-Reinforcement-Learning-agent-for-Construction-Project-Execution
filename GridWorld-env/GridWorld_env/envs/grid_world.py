@@ -88,10 +88,10 @@ class GridWorldEnv(gym.Env):
         # Order: building zone, agent position(s), target, all other agents position
         if num_agents == 1:
             self.obs = np.zeros((3, self.dimension_size, self.dimension_size, self.dimension_size), 
-                                dtype=int)
+                                dtype=float)
         else:
             self.obs = np.zeros((1 + num_agents + 1 + 1, self.dimension_size, self.dimension_size, self.dimension_size), 
-                                dtype=int)
+                                dtype=float)
 
         self.all_targets = None
         self._initialized = False
@@ -140,7 +140,16 @@ class GridWorldEnv(gym.Env):
         self.timestep_elapsed = 0
         self._init_obs()
 
+        
+
+
         np.copyto(self.obs[2], random.choice(self.all_targets))
+
+        # change all instance of 1 to 0.5 in self.obs
+        self.obs[2][self.obs[2] == 1] = GridWorldEnv.COL_BLOCK
+        # change all instance of 2 to 1 in self.obs
+        self.obs[2][self.obs[2] == 2] = GridWorldEnv.BEAM_BLOCK
+
         obs = self.get_obs(0)
         self.mutex.release()
         return obs, {}
@@ -169,6 +178,8 @@ class GridWorldEnv(gym.Env):
         if self._initialized:
             return
         self.all_targets = self.loader.load_all()
+        # convert all targets to float
+    
 
         assert len(self.all_targets) > 0, "No target found\n"
         for i in range(len(self.all_targets)):
