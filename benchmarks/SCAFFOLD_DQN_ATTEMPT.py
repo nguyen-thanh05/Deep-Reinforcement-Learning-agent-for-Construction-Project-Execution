@@ -64,8 +64,8 @@ BATCH_SIZE = 64
 GAMMA = 0.99
 EPS_START = 0.99
 EPS_END = 0.01
-EPS_DECAY = 1500000
-TAU = 0.0002
+EPS_DECAY = 5500000
+TAU = 0.0001
 STEPSIZE = 0.00005
 BETA_START = 0.4
 BETA_END = 1
@@ -87,7 +87,7 @@ if torch.cuda.is_available():
 target_net.load_state_dict(policy_net.state_dict())
 
 optimiser = optim.Adam(policy_net.parameters(), lr=STEPSIZE, eps=1.5e-4)
-memory = ReplayBuffer(obs_dim=(3,4,4,4), size=32768, n_step=N_STEP, gamma = GAMMA, batch_size=BATCH_SIZE)
+memory = ReplayBuffer(obs_dim=(3,4,4,4), size=40000, n_step=N_STEP, gamma = GAMMA, batch_size=BATCH_SIZE)
 
 steps_done = 0
 
@@ -218,7 +218,7 @@ for i_episode in range(num_episodes):
         #print(env.unwrapped.get_seqsuence())
         #env.unwrapped.render()
     
-    if i_episode % 1000 == 0 and i_episode > 1:
+    if i_episode % 500 == 0 and i_episode > 1:
         torch.save(policy_net, "checkpoint" + str(i_episode) + "_policy.pt")
         torch.save(target_net, "checkpoint" + str(i_episode) + "_target.pt")
         

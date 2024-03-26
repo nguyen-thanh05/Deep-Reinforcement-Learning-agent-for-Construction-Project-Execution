@@ -5,7 +5,7 @@ import random
 from gymnasium import spaces
 import numpy as np
 import matplotlib.pyplot as plt
-MAX_TIMESTEP = 1500
+MAX_TIMESTEP = 3000
 from target_loader import TargetLoader
 
 #import Lock
@@ -28,7 +28,7 @@ class Action:
 
 
 action_enum = Action
-
+"""
 class Reward:
     def __init__(self):
         self.MIN_REWARD = -5
@@ -36,7 +36,7 @@ class Reward:
     def normalize_reward(self,  rew):
         # normalize_reward between -1 and 1
         return 2 * (rew - self.MIN_REWARD) / (self.MAX_REWARD - self.MIN_REWARD) - 1
-
+"""
 class GridWorldEnv(gym.Env): 
     """
         3 TUPLE element state
@@ -76,7 +76,7 @@ class GridWorldEnv(gym.Env):
     
     def __init__(self, dimension_size, path: str, num_agents=1, debug=False):
         self.action_enum = Action
-        self.reward = Reward()
+        #self.reward = Reward()
 
         self.observation_space = spaces.Box(low=0, high=255, shape=(64, 64, 3), dtype=np.uint8)
         self.dimension_size = dimension_size
@@ -265,7 +265,7 @@ class GridWorldEnv(gym.Env):
         return False
 
     # position is not in any block or scaffolding
-    def _isInNothing(self, pos):
+    def _is_empty(self, pos):
         if (self.building_zone[pos[0], pos[1], pos[2]] == 0):
             return True
         return False
@@ -296,7 +296,7 @@ class GridWorldEnv(gym.Env):
 
         """
         
-        if (pos[2] >= 2 and self._isInNothing([pos[0], pos[1], pos[2] - 1]) and self._isInBlock([pos[0], pos[1], pos[2] - 2])):
+        if (pos[2] >= 2 and self._is_empty([pos[0], pos[1], pos[2] - 1]) and self._isInBlock([pos[0], pos[1], pos[2] - 2])):
             return True
          
         """
@@ -305,7 +305,7 @@ class GridWorldEnv(gym.Env):
             |
             ----
         """
-        if (pos[2] == 1 and self._isInNothing([pos[0], pos[1], pos[2] - 1])):  # we are 1 block above the ground
+        if (pos[2] == 1 and self._is_empty([pos[0], pos[1], pos[2] - 1])):  # we are 1 block above the ground
             return True
 
         return False
@@ -398,7 +398,7 @@ class GridWorldEnv(gym.Env):
             return False
         if (self._supportingBlockExist(place_pos)):
             # check if there is no block or agent in the position
-            if (self._isInNothing(place_pos)):
+            if (self._is_empty(place_pos)):
                 valid = True
         return valid 
 
@@ -448,7 +448,7 @@ class GridWorldEnv(gym.Env):
             supporting_neighbour = False"""
 
         for neighbour in neighbour_direction:
-            if (self._isInNothing(neighbour)):
+            if (self._is_empty(neighbour)):
                 supporting_neighbour = False
                 break
         # if the block is already on the ground then it is supporting
@@ -460,30 +460,9 @@ class GridWorldEnv(gym.Env):
         #    supporting_neighbour = True
         return supporting_neighbour
 
-
+    """
     def _check_columns_finish(self):
-        """
-        eg:
-            building_zone = [0, 0, 0.5, -1] 0.5 is coloumn
-            target        = [0, 0.5, 0.5, 1]  -1 is scafold, 1 is beam
-
-            diff = [0, -0.5, 0, -2]  
-
-            np.isIn(diff, -COL_BLOCK= -0.5) = [false, true, false, false]
-
-            so column is done if there are no difference of -1
-            (i, j) with difference of -1 means we placed nothing here but there should be column block here
-
-
-            edge case: when scafold is covering all the column block space
-            building_zone = [0, -1, -1, 0] 0.5 is coloumn
-            target        = [0, 0.5, 0.5, 0]  -1 is scafold, 1 is beam
-
-            diff = [0, -1.5, -1.5, 0]
-
-            scafolddiff = [false, true, true, false]
-
-        """
+        
         difference = self.building_zone - self.target # entry is true if buildingzone is empty but should have column block
 
         difference = np.isin(difference, -GridWorldEnv.COL_BLOCK)
@@ -494,7 +473,7 @@ class GridWorldEnv(gym.Env):
         # check if 
         if np.any(difference) or np.any(scafoldDiff):
             return False
-        return True
+        return True"""
     
     def _isDoneBuildingStructure(self):
 
@@ -505,6 +484,13 @@ class GridWorldEnv(gym.Env):
         if not np.any(check_done):  
             return True
         return False
+    
+    def _check_finish_columns(self):
+        check = np.isin(self.building_zone[self.target == GridWorldEnv.COL_BLOCK], 0)
+        if not np.any(check):
+            return True
+        return False
+    
 
     def step(self, action_tuple):
         if (len(action_tuple) != 2):
@@ -541,7 +527,7 @@ class GridWorldEnv(gym.Env):
                        self.action_enum.LEFT,
                        self.action_enum.UP,
                        self.action_enum.DOWN]):  # move action
-            R = -1.25
+            R = -0.2
             terminated = False
             truncated = False
             is_valid = False
@@ -559,10 +545,10 @@ class GridWorldEnv(gym.Env):
             #if not isValid: R = -1
             if self.timestep_elapsed > MAX_TIMESTEP:
                 truncated = True    
-            return obs, self.reward.normalize_reward(R), terminated, truncated, {}
+            return obs, R, terminated, truncated, {}
 
         elif (action == self.action_enum.PLACE_SCAFOLD):
-            R = -1.25
+            R = -0.2
             terminated = False
             truncated = False
             is_valid = False
@@ -573,7 +559,7 @@ class GridWorldEnv(gym.Env):
 
             obs = self.get_obs(agent_id)
 #            self.mutex.release()
-            if not is_valid: R = -5
+            if not is_valid: R = -1
             if self.timestep_elapsed > MAX_TIMESTEP:
                 truncated = True
 
@@ -584,12 +570,12 @@ class GridWorldEnv(gym.Env):
             #    # we place scafold on non target
             #    R = -0.75
 
-            return obs, self.reward.normalize_reward(R), terminated, truncated, {}
+            return obs, R, terminated, truncated, {}
             
         elif (action == self.action_enum.REMOVE_SCAFOLD):
-            R = -1.25
+            R = -0.2
             if self.finished_structure:
-                R = 1.25
+                R = 0.2
             terminated = False
             truncated = False
             is_valid = False
@@ -597,7 +583,8 @@ class GridWorldEnv(gym.Env):
 
             
             if (self._isInScaffoldingDomain(current_pos)):
-                if (not self._isOutOfBound([current_pos[0], current_pos[1], current_pos[2] + 1]) and  self._isInNothing([current_pos[0], current_pos[1], current_pos[2] + 1])):
+                if (not self._isOutOfBound([current_pos[0], current_pos[1], current_pos[2] + 1]) and  (self._is_empty([current_pos[0], current_pos[1], current_pos[2] + 1]) or 
+                                                                                                       self.building_zone[current_pos[0], current_pos[1], current_pos[2] + 1] == GridWorldEnv.BEAM_BLOCK)):
                     # case: remove scaffold is not on the top floor and there is no block above
                     self.building_zone[current_pos[0], current_pos[1], current_pos[2]] = 0
                     is_valid = True
@@ -612,12 +599,15 @@ class GridWorldEnv(gym.Env):
             # return obs, reward, done, info
             obs = self.get_obs(agent_id)
             #self.mutex.release()
-            if not is_valid: R = -5
+            if not is_valid: R = -1
             if self.timestep_elapsed > MAX_TIMESTEP:
                 truncated = True
-                return obs, self.reward.normalize_reward(R), terminated, truncated, {}
+                return obs, R, terminated, truncated, {}
             else:
-                return obs, self.reward.normalize_reward(R), terminated, truncated, {}
+                if self.finished_structure and is_valid and not np.any(np.isin(self.building_zone, GridWorldEnv.SCAFFOLD)):
+                    R = 1
+                    terminated = True
+                return obs, R, terminated, truncated, {}
         elif action == self.action_enum.PLACE_COLUMN:  # place command
             R = -0.5
             terminated = False
@@ -639,42 +629,35 @@ class GridWorldEnv(gym.Env):
                 self.building_zone[current_pos[0], current_pos[1], current_pos[2]] = GridWorldEnv.COL_BLOCK
 
                 if  self.target[current_pos[0], current_pos[1], current_pos[2]] == self.building_zone[current_pos[0], current_pos[1], current_pos[2]]:
-                    R = -0.25
+                    R = 0
                 else:
-                    R = -1.5
+                    R = -0.5
             else:
-                R = -5
+                R = -1
             obs = self.get_obs(agent_id)
             #self.mutex.release()
             # check if structure is complete
-            if (is_valid and self._isDoneBuildingStructure()):  #  only do terminal check if we placed a block to save computation
+            if (is_valid and self._check_finish_columns() and not self.finished_structure_reward_used):  #  only do terminal check if we placed a block to save computation
                 #terminated = True
-                if np.array_equal(self.building_zone, self.target):
-                    terminated = True
+                """if np.array_equal(self.building_zone, self.target):
+                    terminated = True"""
+                
+                R = 1
+                self.finished_structure_reward_used = True
 
-
-                if (self.finished_structure_reward_used):
-                    # if agent placed block after the structure is done
-                    R = -5
-                else:
-                    R = 10
-                    self.finished_structure_reward_used = True
-
-
-                self.finished_structure = True
             if self.timestep_elapsed > MAX_TIMESTEP:
                 truncated = True
-                return obs, self.reward.normalize_reward(R), terminated, truncated, {}
+                return obs, R, terminated, truncated, {}
             else:
-                return obs, self.reward.normalize_reward(R), terminated, truncated, {}
+                return obs, R, terminated, truncated, {}
         elif action == self.action_enum.PLACE_BEAM:
             R = -0.5
             terminated = False
             truncated = False
             is_valid = False
             # case: havent fnished column block yet
-            if not self._check_columns_finish():
-                return self.get_obs(agent_id), self.reward.normalize_reward(-5), False, self.timestep_elapsed > MAX_TIMESTEP, {}
+            if not self._check_finish_columns():
+                return self.get_obs(agent_id), -1, False, self.timestep_elapsed > MAX_TIMESTEP, {}
             else:
                 # if there is already a block or a scaffold in the position
                 if self.building_zone[current_pos[0], current_pos[1], current_pos[2]] == GridWorldEnv.SCAFFOLD or self._isInBlock(current_pos):
@@ -691,24 +674,24 @@ class GridWorldEnv(gym.Env):
                     self.building_zone[current_pos[0], current_pos[1], current_pos[2]] = GridWorldEnv.BEAM_BLOCK
                     if  self.target[current_pos[0], current_pos[1], current_pos[2]] == self.building_zone[current_pos[0], current_pos[1], current_pos[2]]:
                         # good placement R = -1.5 + 1.25 = -0.25
-                        R = -0.25
+                        R = 0
                     else:
-                        R = -1.5
+                        R = -0.5
                 else:
-                    R = -5
+                    R = -1
 
                 obs = self.get_obs(agent_id)
                 #self.mutex.release()
                 # check if structure is complete
                 if (is_valid and self._isDoneBuildingStructure()):  #  only do terminal check if we placed a block to save computation
-                    terminated = True
-                    R = 10
+                    #terminated = True
+                    R = 1
                     self.finished_structure = True
                 if self.timestep_elapsed > MAX_TIMESTEP:
                     truncated = True
-                    return obs, self.reward.normalize_reward(R), terminated, truncated, {}
+                    return obs, R, terminated, truncated, {}
                 else:
-                    return obs, self.reward.normalize_reward(R), terminated, truncated, {}
+                    return obs, R, terminated, truncated, {}
 
         return
 
@@ -794,10 +777,19 @@ def test(env, agent_id):
 
 if __name__ == "__main__":
     # List of actions
-    # 0: forward, 1: backward
-    # 2: left, 3: right
-    # 4: up, 5: down
-    # 6: place block
+    # 
+    """
+    FORWARD = 0
+    BACKWARD = 1
+    LEFT = 2
+    RIGHT = 3
+    UP = 4
+    DOWN = 5
+    PLACE_SCAFOLD = 6
+    REMOVE_SCAFOLD = 7
+    PLACE_BEAM = 8
+    PLACE_COLUMN = 9"""
+
     env = GridWorldEnv(4, path="targets" , num_agents=1, debug=True)
 
     # test move
@@ -807,6 +799,9 @@ if __name__ == "__main__":
     #placeBrianScalfold(env, 0)
     env.step((6, 0))
     state, reward, terminated, done, info = env.step((7, 0))
+    state, reward, terminated, done, info = env.step((9, 0))
+    state, reward, terminated, done, info = env.step((9, 0))
+    
     print(reward)
     #testInvalidPlace(env, 0)
     #env.step(0)
