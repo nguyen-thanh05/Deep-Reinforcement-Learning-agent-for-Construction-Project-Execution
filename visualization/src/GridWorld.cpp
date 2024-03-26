@@ -182,44 +182,39 @@ void GridWorld::ResizeGrid(uint32_t _w, uint32_t _h, uint32_t _d) {
     agentPos = {0, 0, 0};
 }
 
-/* Trying out binary format. Sorry Thanh
 void GridWorld::SaveToFile() const {
     std::ofstream myfile;
     myfile.open(filePath, std::fstream::out);
 
+    myfile << w << ' ' << h << ' ' << d << ' ';
+
     for (int i=0; i < w; i++) {
-        for (int j=0; j < d; j++) {
-            for (int k=0; k < h; k++) {
+        for (int j=0; j < h; j++) {
+            for (int k=0; k < d; k++) {
                 myfile << grid[i][j][k] << " ";
             }
-            myfile << std::endl;
         }
         myfile << std::endl;
     }
     myfile << std::endl;
     myfile.close();
 }
-*/
 
-void GridWorld::SaveToFile() const {
-    size_t size = w * d * h + 3;
-    std::unique_ptr<int []> flatArray = std::make_unique<int[]>(size);
-    flatArray[0] = w;
-    flatArray[1] = h;
-    flatArray[2] = d;
+void GridWorld::LoadFromFile() {
+    std::ifstream file;
+    int x, y, z;
 
-    size_t index = 3;
+    file.open(filePath, std::fstream::in);
+    file >> x >> y >> z;
+    if (x != w || y != h || z != d) ResizeGrid(x, y, z);
 
     for (int i=0; i < w; i++) {
         for (int j=0; j < h; j++) {
             for (int k=0; k < d; k++) {
-                flatArray[index++] = grid[i][j][k];
+                file >> grid[i][j][k];
             }
         }
     }
-
-    std::ofstream file(filePath, std::ios_base::binary);
-    file.write((char *)flatArray.get(), static_cast<std::streamsize>(size * sizeof(int)));
     file.close();
 }
 
@@ -263,34 +258,5 @@ Action GridWorld::Step() {
 
     return Action::NONE;
 }
-
-void GridWorld::LoadFromFile() {
-    if (!fs::exists(filePath)) {
-        std::cerr << "File " << filePath << " does not exist" << std::endl;
-        exit(1);
-    }
-
-    std::ifstream file(filePath, std::ios_base::binary);
-    int x, y, z;
-    file.read((char *) &x, sizeof(int));
-    file.read((char *) &y, sizeof(int));
-    file.read((char *) &z, sizeof(int));
-    if (x != w || y != h || z != d) ResizeGrid(x, y, z);
-
-    // Could read directly into grid instead of array. Not sure which way is more efficient
-    std::unique_ptr<int []> flatArray = std::make_unique<int[]>(x * y * z);
-    file.read((char *) flatArray.get(), static_cast<std::streamsize>(x * y * z * sizeof(int)));
-    size_t index = 0;
-
-    for (int i=0; i < w; i++) {
-        for (int j=0; j < h; j++) {
-            for (int k=0; k < d; k++) {
-                grid[i][j][k] = flatArray[index++];
-            }
-        }
-    }
-    file.close();
-}
-
 }
 

@@ -27,9 +27,9 @@ class GridWorld {
 template<class T> using vec = std::vector<T>;
 
 public:
-    GridWorld(int _w, int _h, int _d, int _blockTypes, std::string path, bool save)
+    GridWorld(int _w, int _h, int _d, int _blockTypes, const char* path, bool save)
             : w(_w), h(_h), d(_d), nBlockTypes(_blockTypes),
-              filePath(std::move(path)),
+              filePath(path),
               grid(w, vec<vec<int>>(h, vec<int>(d, 0)))
     {
         if (!save) {
@@ -90,7 +90,7 @@ private:
     int nBlockTypes;
 
     constexpr static Color blockColors[13] = {
-            BLACK,
+        BLACK,
         BLUE,
         YELLOW,
         ORANGE,

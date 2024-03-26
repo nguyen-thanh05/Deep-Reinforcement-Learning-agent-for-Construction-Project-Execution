@@ -33,23 +33,10 @@ int main(int argc, char* argv[])
     if (operation != "s" && operation != "l") PrintError();
     bool save = operation == "s";
 
-    fs::path modelsPath = fs::current_path().parent_path().parent_path() / "targets";
-
-    // Check if the directory exists
-    if (!fs::exists(modelsPath)) {
-        // Directory does not exist, create it
-        if (!fs::create_directories(modelsPath)) {
-            std::cerr << "Failed to create directory: " << modelsPath << std::endl;
-            return 1;
-        }
-    }
-
-    fs::path filePath = modelsPath / argv[4];
-
     const int screenWidth = 1000;
     const int screenHeight = 600;
 
-    GWEnv::GridWorld env(size, size, size, blockTypes, filePath.generic_string(), save);
+    GWEnv::GridWorld env(size, size, size, blockTypes, argv[4], save);
     InitWindow(screenWidth, screenHeight, "Grid World");
 
     SetTargetFPS(60);                   // Set our game to run at 60 frames-per-second
