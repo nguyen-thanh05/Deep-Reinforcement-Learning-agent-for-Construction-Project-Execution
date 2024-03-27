@@ -517,7 +517,7 @@ class GridWorldEnv(gym.Env):
         
         """
         current_pos = self.AgentsPos[agent_id]
-
+        isValid = False
         if (action in [self.action_enum.FORWARD, 
                        self.action_enum.BACKWARD,
                        self.action_enum.RIGHT,
@@ -535,11 +535,12 @@ class GridWorldEnv(gym.Env):
                 self.AgentsPos[agent_id][1] = new_pos[1]
                 self.AgentsPos[agent_id][2] = new_pos[2]
                 #self.building_zone[self.AgentsPos[agent_id][0], self.AgentsPos[agent_id][1], self.AgentsPos[agent_id][2]] = 1
+                isValid = True
             """else:  # case: invalid move, so agent just stay here
                 pass"""
             obs = self.get_obs(agent_id)
             #self.mutex.release()
-            #if not isValid: R = -1
+            if not isValid: R = -5
             if self.timestep_elapsed > MAX_TIMESTEP:
                 truncated = True    
             return obs, R, terminated, truncated, {}
@@ -654,7 +655,8 @@ class GridWorldEnv(gym.Env):
             is_valid = False
             # case: havent fnished column block yet
             if not self._check_finish_columns():
-                return self.get_obs(agent_id), -1, False, self.timestep_elapsed > MAX_TIMESTEP, {}
+                print("not finished col")
+                return self.get_obs(agent_id), -5, False, self.timestep_elapsed > MAX_TIMESTEP, {}
             else:
                 # if there is already a block or a scaffold in the position
                 if self.building_zone[current_pos[0], current_pos[1], current_pos[2]] == GridWorldEnv.SCAFFOLD or self._isInBlock(current_pos):
