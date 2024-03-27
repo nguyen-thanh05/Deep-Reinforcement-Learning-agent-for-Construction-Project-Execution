@@ -48,12 +48,18 @@ void GridWorld::Render() {
     DrawText("X: Delete block", 40, 80, 10, DARKGRAY);
     DrawText("SPACE: Place block", 40, 100, 10, DARKGRAY);
     DrawText("ENTER: Save to file", 40, 120, 10, DARKGRAY);
+    if (recording) {
+        DrawText("R: Stop recording", 40, 140, 10, DARKGRAY);
+        DrawRectangle(140, 140, 10, 10, RED);
+    } else {
+        DrawText("R: Start recording", 40, 140, 10, DARKGRAY);
+        DrawTriangle({150, 145}, {140, 140}, {140, 150}, RED);
+    }
 
     DrawRectangle( 900, 10, 70, 70, Fade(blockColors[currBlockType], 0.5f));
     DrawRectangleLines( 900, 10, 70, 70, blockColors[currBlockType]);
     DrawText("Block type", 910, 20, 10, DARKGRAY);
     DrawText(std::to_string(currBlockType).c_str(), 930, 35, 20, DARKGRAY);
-
     EndDrawing();
 }
 
