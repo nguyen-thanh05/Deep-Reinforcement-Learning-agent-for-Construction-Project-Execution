@@ -9,8 +9,7 @@ void GridWorld::Render() {
     if (IsCursorHidden()) UpdateCamera(&camera, CAMERA_FREE);
 
     // Toggle camera controls
-    if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT))
-    {
+    if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT)) {
         if (IsCursorHidden()) EnableCursor();
         else DisableCursor();
     }
@@ -27,6 +26,8 @@ void GridWorld::Render() {
             Move(action);
             break;
     }
+
+    if (recording && action != Action::NONE) sequence.push_back(action);
 
     BeginDrawing();
     ClearBackground(RAYWHITE);
@@ -60,7 +61,6 @@ void GridWorld::DrawPlanes() const {
     float hLength = (float) h * spacing;
     float wLength = (float) w * spacing;
     float dLength = (float) d * spacing;
-
 
     rlBegin(RL_LINES);
     for (int i = 0; i <= h; i++) {
@@ -159,8 +159,8 @@ void GridWorld::DrawBlocks() const {
                     DrawCube({posX, posY, posZ},
                              spacing, spacing, spacing,
                              Fade(blockColors[grid[i][j][k]], 0.5f));
-                    DrawCubeWires({posX, posY, posZ},
-                                  spacing, spacing, spacing, RED);
+//                    DrawCubeWires({posX, posY, posZ},
+//                                  spacing, spacing, spacing, RED);
                 }
             }
         }
@@ -182,22 +182,22 @@ void GridWorld::ResizeGrid(uint32_t _w, uint32_t _h, uint32_t _d) {
     agentPos = {0, 0, 0};
 }
 
-void GridWorld::SaveToFile() const {
-    std::ofstream myfile;
-    myfile.open(filePath, std::fstream::out);
+void GridWorld::SaveTarget() const {
+    std::ofstream targetOutStream;
+    targetOutStream.open(filePath, std::fstream::out);
 
-    myfile << w << ' ' << h << ' ' << d << ' ';
+    targetOutStream << w << ' ' << h << ' ' << d << ' ';
 
     for (int i=0; i < w; i++) {
         for (int j=0; j < h; j++) {
             for (int k=0; k < d; k++) {
-                myfile << grid[i][j][k] << " ";
+                targetOutStream << grid[i][j][k] << " ";
             }
         }
-        myfile << std::endl;
+        targetOutStream << std::endl;
     }
-    myfile << std::endl;
-    myfile.close();
+    targetOutStream << std::endl;
+    targetOutStream.close();
 }
 
 void GridWorld::LoadFromFile() {
@@ -229,12 +229,17 @@ Action GridWorld::Step() {
             return Action::NONE;
         }
     }
+    if (IsKeyPressed(KEY_R)) {
+        recording = !recording;
+        Record();
+        return Action::NONE;
+    }
 
     if (IsKeyPressed(KEY_ENTER)) {
         if (enterDelayed) return Action::NONE;
         enterDelayed = true;
-
-        SaveToFile();
+        SaveSequence();
+        SaveTarget();
         return Action::NONE;
     }
 
@@ -257,6 +262,19 @@ Action GridWorld::Step() {
     }
 
     return Action::NONE;
+}
+
+void GridWorld::SaveSequence() const {
+    std::ofstream outStream(filePath + ".seq", std::fstream::out);
+    outStream << "This sequence file should be accompanied by a corresponding target file of name " << filePath << std::endl;
+    outStream << "Dimensions: " << w << ' ' << h << ' ' << d << std::endl;
+    outStream << "Starting position: x " << startingPos.x << ' ' << startingPos.y << ' ' << startingPos.z << std::endl;
+    outStream << "Number of actions: " << sequence.size() << std::endl << std::endl;
+
+    for (auto action : sequence) {
+        outStream << ActionName[action] << std::endl;
+    }
+    outStream.close();
 }
 }
 
