@@ -106,7 +106,7 @@ class GridWorldEnv(gym.Env):
         
         self.loader = TargetLoader(path)
 
-        self.mutex = Lock()
+        #self.mutex = Lock()
         self.num_agents = num_agents
 
         self.reset()
@@ -117,7 +117,7 @@ class GridWorldEnv(gym.Env):
     
     # in multiagent, make sure only one agent is allowed to call this function(meta agent for example)
     def reset(self, seed=None, options=None):
-        self.mutex.acquire()  # get lock to enter critical section
+        #self.mutex.acquire()  # get lock to enter critical section
         self.building_zone.fill(0)
         self.finished_structure = False
         self.finished_structure_reward_used = False
@@ -151,7 +151,7 @@ class GridWorldEnv(gym.Env):
         self.obs[2][self.obs[2] == 2] = GridWorldEnv.BEAM_BLOCK
 
         obs = self.get_obs(0)
-        self.mutex.release()
+        #self.mutex.release()
         return obs, {}
 
     # return (3 x N x N x N) tensor for now, 
@@ -227,13 +227,13 @@ class GridWorldEnv(gym.Env):
         #if (action in [0, 1, 2, 3, 4, 5]):
         new_pos = self.AgentsPos[agent_id].copy()
         if (action == 0):  # move forward
-            new_pos[0] += 1
-        elif (action == 1):  # move backward
-            new_pos[0] -= 1
-        elif (action == 2):  # move left
-            new_pos[1] -= 1
-        elif (action == 3):  # move right
             new_pos[1] += 1
+        elif (action == 1):  # move backward
+            new_pos[1] -= 1
+        elif (action == 2):  # move left
+            new_pos[0] -= 1
+        elif (action == 3):  # move right
+            new_pos[0] += 1
         elif (action == 4):  # move up
             new_pos[2] += 1
         elif (action == 5):  # move down
@@ -354,7 +354,8 @@ class GridWorldEnv(gym.Env):
             ]
 
         # Find if there is any supporting neighbour, or on the ground
-        if (supporting_neighbour := current_pos[2] == 0) is False:
+        supporting_neighbour = current_pos[2] == 0
+        if supporting_neighbour == False:
             for neighbour in neighbour_direction:
                 if neighbour[0] < 0 or neighbour[0] >= self.dimension_size \
                         or neighbour[1] < 0 or neighbour[1] >= self.dimension_size \
@@ -372,37 +373,6 @@ class GridWorldEnv(gym.Env):
         return False
     
 
-    def _isValidPlace(self, action, current_pos, agent_id):
-        if (action == self.action_enum.PLACE_SCAFOLD):
-            if (not self._isInScaffoldingDomain(current_pos) and not self._isInBlock(current_pos)):  # case: there is not
-                return True 
-            return False
-
-        # case: place block
-        assert (action in [8, 9, 10, 11])
-        valid = False
-        place_pos = None
-        if action == self.action_enum.PLACE_FORWARD:
-            place_pos = current_pos + [1, 0, 0] 
-        elif action == self.action_enum.PLACE_BACKWARD:
-            place_pos = current_pos + [-1, 0, 0] 
-        elif action == self.action_enum.PLACE_LEFT:
-            place_pos = current_pos + [0, -1, 0]
-        elif action == self.action_enum.PLACE_RIGHT:
-            place_pos = current_pos + [0, 1, 0]
-        else:
-            raise ValueError("Invalid action")
-        
-        # check if place_pos is out of bound
-        if (place_pos[0] < 0 or place_pos[0] >= self.dimension_size or place_pos[1] < 0 or place_pos[1] >= self.dimension_size or place_pos[2] < 0 or place_pos[2] >= self.dimension_size):
-            return False
-        if (self._supportingBlockExist(place_pos)):
-            # check if there is no block or agent in the position
-            if (self._is_empty(place_pos)):
-                valid = True
-        return valid 
-
-
     """
     if there exist supporting neighborblock around currentPos, 
     SUPORTING IF THERE ARE 4 SCAFFOLD 
@@ -411,54 +381,48 @@ class GridWorldEnv(gym.Env):
        currentPos: 3-tuple (x, y, z), the location we want to place the block
     
     """ 
-    def _supportingBlockExist(self, currentPos):    
-        neighbour_direction = [  
+    def _check_support(self, currentPos, beam=False):   
+        support = True
+        scalffold_direction = [  
             [currentPos[0] + delta_x, currentPos[1] + delta_y, currentPos[2] + delta_z]
             for delta_x, delta_y, delta_z in [[-1, 0, -1], [1, 0, -1], [0, -1, -1], [0, 1, -1], [0, 0, -1]]
         ]                                       # LEFT       RIGHT       BEHIND      FRONT
 
-        """scafold_direction = [
+        adjacent_direction = [
             [currentPos[0] + delta_x, currentPos[1] + delta_y, currentPos[2] + delta_z]
-            for delta_x, delta_y, delta_z in [[-1, 0, -1], [1, 0, -1], [0, -1, -1], [0, 1, -1], [0, 0, -1]]
-            #                                  S down       N down        E dodwn      W down      down
-        ] 
-        valid_scafold = [] 
-        for scafold in scafold_direction:
-            if scafold[0] < 0 or scafold[0] >= self.dimension_size or scafold[1] < 0 or scafold[1] >= self.dimension_size or scafold[2] < 0 or scafold[2] >= self.dimension_size:
-                scafold_direction.remove(scafold)  # remove invalid scafolds
-            else:
-                valid_scafold.append(scafold)"""
+            for delta_x, delta_y, delta_z in [[-1, 0, 0], [1, 0, 0], [0, -1, 0], [0, 1, 0]]
+        ]                                       # LEFT       RIGHT       BEHIND      FRONT
         
-        for neighbour in neighbour_direction:
-            if neighbour[0] < 0 or neighbour[0] >= self.dimension_size or neighbour[1] < 0 or neighbour[1] >= self.dimension_size or neighbour[2] < 0 or neighbour[2] >= self.dimension_size:
-                neighbour_direction.remove(neighbour)  # remove invalid neighbours
+        # Remove invalid directions
+        for direction in scalffold_direction:
+            if direction[0] < 0 or direction[0] >= self.dimension_size \
+                    or direction[1] < 0 or direction[1] >= self.dimension_size \
+                    or direction[2] < 0 or direction[2] >= self.dimension_size:
+                scalffold_direction.remove(direction)
+        for direction in adjacent_direction:
+            if direction[0] < 0 or direction[0] >= self.dimension_size \
+                    or direction[1] < 0 or direction[1] >= self.dimension_size \
+                    or direction[2] < 0 or direction[2] >= self.dimension_size:
+                adjacent_direction.remove(direction)
         
-
-        # Find if there is any supporting neighbour
-        supporting_neighbour = True
-        #for neighbour in neighbour_direction:
-        #    if self.building_zone[neighbour[0], neighbour[1], neighbour[2]] == -1:
-        #        supporting_neighbour = True
-        #        break
-        #
-        """for space in valid_scafold:
-            if not self._isInScaffoldingDomain(space) and not self._isInBlock(space):
-                supporting_neighbour = False
-        if len(valid_scafold) == 0:
-            supporting_neighbour = False"""
-
-        for neighbour in neighbour_direction:
-            if (self._is_empty(neighbour)):
-                supporting_neighbour = False
+        for scaffold_dir in scalffold_direction:
+            if self.building_zone[scaffold_dir[0], scaffold_dir[1], scaffold_dir[2]] == GridWorldEnv.EMPTY:
+                support = False
                 break
-        # if the block is already on the ground then it is supporting
-        """if currentPos[2] == 0:
-            supporting_neighbour = True"""
+        if beam:
+            if support:
+                if self.building_zone[currentPos[0], currentPos[1], currentPos[2] - 1] == GridWorldEnv.COL_BLOCK:
+                    support = True
+                else:
+                    support = False
+                    for adjacent_dir in adjacent_direction:
+                        if self.building_zone[adjacent_dir[0], adjacent_dir[1], adjacent_dir[2]] == GridWorldEnv.COL_BLOCK or \
+                            self.building_zone[adjacent_dir[0], adjacent_dir[1], adjacent_dir[2]] == GridWorldEnv.BEAM_BLOCK:
+                            support = True
+                            break
+        return support
         
-        # if there is block below then it is supporting
-        #if currentPos[2] > 0 and self.building_zone[currentPos[0], currentPos[1], currentPos[2] - 1] == -1:
-        #    supporting_neighbour = True
-        return supporting_neighbour
+        # Check if there's any supporting block
 
     """
     def _check_columns_finish(self):
@@ -622,7 +586,7 @@ class GridWorldEnv(gym.Env):
             elif current_pos[2] == 0:
                 is_valid = True
             # Case 2, on the scaffold and there is column block below
-            elif self._supportingBlockExist(current_pos) and self._columnExist((current_pos[0], current_pos[1], current_pos[2] - 1)):
+            elif self._check_support(current_pos) and self._columnExist((current_pos[0], current_pos[1], current_pos[2] - 1)):
                 is_valid = True
                 
             if is_valid:
@@ -667,7 +631,7 @@ class GridWorldEnv(gym.Env):
                 elif current_pos[2] == 0:
                     is_valid = True
                 # Case 2, on the scaffold
-                elif self._supportingBlockExist(current_pos):
+                elif self._check_support(current_pos, beam=True):
                     is_valid = True
                     
                 if is_valid:
@@ -776,6 +740,7 @@ def test(env, agent_id):
     return
 
 if __name__ == "__main__":
+    import time
     # List of actions
     # 
     """
@@ -791,27 +756,102 @@ if __name__ == "__main__":
     PLACE_COLUMN = 9"""
 
     env = GridWorldEnv(4, path="targets" , num_agents=1, debug=True)
-
-    # test move
-    #testMove(env, 0)
-    #testScafold(env, 0)
-    #testPlaceBlock(env, 0)
-    #placeBrianScalfold(env, 0)
-    env.step((6, 0))
-    state, reward, terminated, done, info = env.step((7, 0))
-    state, reward, terminated, done, info = env.step((9, 0))
-    state, reward, terminated, done, info = env.step((9, 0))
     
-    print(reward)
-    #testInvalidPlace(env, 0)
-    #env.step(0)
-    #env.step(6)
-    #env.step(4)
-    #env.step(6)
-    #env.step(3)
-    #env.step(6)
-    ##env.render()
-    #print(env.building_zone)
+    env.step((0, 0))
+    env.step((3, 0))
+    
+    for i in range(3):
+        env.step((9, 0))
+        env.step((1, 0))
+        env.step((6, 0))
+        env.step((0, 0))
+        env.step((2, 0))
+        env.step((6, 0))
+        env.step((3, 0))
+        env.step((4, 0))
 
+    env.step((2, 0))
+    env.step((2, 0))
+    env.step((2, 0))
+    env.step((2, 0))
+    
+    env.step((5, 0))
+    env.step((5, 0))
+    env.step((5, 0))
+    env.step((5, 0))
+    
+    for i in range(3):
+        env.step((9, 0))
+        env.step((3, 0))
+        env.step((6, 0))
+        env.step((2, 0))
+        env.step((1, 0))
+        env.step((6, 0))
+        env.step((0, 0))
+        env.step((4, 0))
+    
+    env.step((1, 0))
+    env.step((1, 0))
+    env.step((1, 0))
+    env.step((1, 0))
+    
+    env.step((5, 0))
+    env.step((5, 0))
+    env.step((5, 0))
+    env.step((5, 0))
+    
+    for i in range(3):
+        env.step((9, 0))
+        env.step((0, 0))
+        env.step((6, 0))
+        env.step((1, 0))
+        env.step((3, 0))
+        env.step((6, 0))
+        env.step((2, 0))
+        env.step((4, 0))
+    
+    env.step((3, 0))
+    env.step((3, 0))
+    env.step((3, 0))
+    env.step((3, 0))
+    
+    env.step((5, 0))
+    env.step((5, 0))
+    env.step((5, 0))
+    env.step((5, 0))
+    
+    for i in range(3):
+        env.step((9, 0))
+        env.step((0, 0))
+        env.step((6, 0))
+        env.step((1, 0))
+        env.step((2, 0))
+        env.step((6, 0))
+        env.step((3, 0))
+        env.step((4, 0))
+    
+    env.step((8, 0))
+    env.step((0, 0))
+    env.step((5, 0))
+    #env.render()
+    #print(env.building_zone)
+    env.step((2, 0))
+    env.step((6, 0))
+    env.step((0, 0))
+    env.step((6, 0))
+    env.step((4, 0))
+    env.step((3, 0))
+    
+    env.step((1, 0))
+    env.step((8, 0))
+    env.step((0, 0))
+    """env.step((8, 0))
+    
+    env.step((0, 0))"""
+    time.sleep(0.5)
+    print(env.building_zone)
+    env.render()
+    
+    
     
     
