@@ -552,7 +552,7 @@ def objective(trial):
 
 
 if __name__ == "__main__":
-    study = optuna.create_study(direction="maximize")
+    study = optuna.create_study(direction="minimize")
     study.optimize(objective, n_trials=2000, timeout=None)
     from optuna.trial import TrialState
     pruned_trials = study.get_trials(deepcopy=False, states=[TrialState.PRUNED])
