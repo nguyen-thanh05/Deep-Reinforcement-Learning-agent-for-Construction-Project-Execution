@@ -547,7 +547,7 @@ def objective(trial):
             if done or truncated:
                 break
 
-    # print("Cumulative steps: ", cum_step)
+    print("Cumulative steps: ", cum_step)
     return cum_step
 
 
