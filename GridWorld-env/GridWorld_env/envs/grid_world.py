@@ -164,7 +164,7 @@ class GridWorldEnv(gym.Env):
 
         # return observation, reward, terminated, truncated, info
         if action < 6:
-            return self.get_obs(), -1, False, self.timestep_elapsed > MAX_TIMESTEP, {}
+            return self.get_obs(), -0.25, False, self.timestep_elapsed > MAX_TIMESTEP, {}
         # elif place_cmd:
         else:
             if supporting_neighbour and not duplicate_block:
@@ -178,14 +178,14 @@ class GridWorldEnv(gym.Env):
                 """
                 check_done = np.isin(self.building_zone[self.target != 0], 0)
                 if not np.any(check_done):
-                    return self.get_obs(), 10, True, False, {}
+                    return self.get_obs(), 1, True, False, {}
                 else:
                     if self.building_zone[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]] == self.target[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]]:
-                        return self.get_obs(), -0.25, False, self.timestep_elapsed > MAX_TIMESTEP, {}
+                        return self.get_obs(), 0, False, self.timestep_elapsed > MAX_TIMESTEP, {}
                     else:
-                        return self.get_obs(), -2, False, self.timestep_elapsed > MAX_TIMESTEP, {}
+                        return self.get_obs(), -0.5, False, self.timestep_elapsed > MAX_TIMESTEP, {}
             elif duplicate_block or not supporting_neighbour:
-                return self.get_obs(), -5, False, self.timestep_elapsed > MAX_TIMESTEP, {}
+                return self.get_obs(), -1, False, self.timestep_elapsed > MAX_TIMESTEP, {}
 
     def render(self):
         agent_pos_grid = np.zeros((self.dimension_size, self.dimension_size, self.dimension_size), dtype=int)
