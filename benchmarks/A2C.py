@@ -513,18 +513,18 @@ def objective(trial):
 
         rollouts.after_update()
 
-        if j % 5 == 0 and len(episode_rewards) > 1:
-            total_num_steps = (j + 1) * NUM_PROCESSES * NUM_STEP
-            end = time.time()
-            print(
-                "Updates {}, num timesteps {}, FPS {} \n Last {} training episodes: mean/median reward {:.1f}/{:.1f}, min/max reward {:.1f}/{:.1f}\n"
-                .format(j, total_num_steps,
-                        int(total_num_steps / (end - start)),
-                        len(episode_rewards), np.mean(episode_rewards),
-                        np.median(episode_rewards), np.min(episode_rewards),
-                        np.max(episode_rewards), dist_entropy, value_loss,
-                        action_loss))
-            env.render()
+        # if j % 5 == 0 and len(episode_rewards) > 1:
+        #     total_num_steps = (j + 1) * NUM_PROCESSES * NUM_STEP
+        #     end = time.time()
+        #     print(
+        #         "Updates {}, num timesteps {}, FPS {} \n Last {} training episodes: mean/median reward {:.1f}/{:.1f}, min/max reward {:.1f}/{:.1f}\n"
+        #         .format(j, total_num_steps,
+        #                 int(total_num_steps / (end - start)),
+        #                 len(episode_rewards), np.mean(episode_rewards),
+        #                 np.median(episode_rewards), np.min(episode_rewards),
+        #                 np.max(episode_rewards), dist_entropy, value_loss,
+        #                 action_loss))
+        #     env.render()
 
     # test the final weights on all targets
     targets = env.all_targets
@@ -534,7 +534,7 @@ def objective(trial):
     # cumulative reward
     cum_step = 0
 
-    for i in range(6):
+    for i in range(10):
         env.reset()
         for step in range(NUM_STEP):
             with torch.no_grad():
@@ -547,13 +547,13 @@ def objective(trial):
             if done or truncated:
                 break
 
-    print("Cumulative steps: ", cum_step)
+    # print("Cumulative steps: ", cum_step)
     return cum_step
 
 
 if __name__ == "__main__":
     study = optuna.create_study(direction="maximize")
-    study.optimize(objective, n_trials=2, timeout=600)
+    study.optimize(objective, n_trials=2000, timeout=None)
     from optuna.trial import TrialState
     pruned_trials = study.get_trials(deepcopy=False, states=[TrialState.PRUNED])
     complete_trials = study.get_trials(deepcopy=False, states=[TrialState.COMPLETE])
