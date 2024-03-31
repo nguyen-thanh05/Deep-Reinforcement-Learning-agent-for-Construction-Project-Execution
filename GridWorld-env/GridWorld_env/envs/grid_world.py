@@ -181,7 +181,7 @@ class GridWorldEnv(gym.Env):
                     return self.get_obs(), 1, True, False, {}
                 else:
                     if self.building_zone[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]] == self.target[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]]:
-                        return self.get_obs(), 0, False, self.timestep_elapsed > MAX_TIMESTEP, {}
+                        return self.get_obs(), 0.5, False, self.timestep_elapsed > MAX_TIMESTEP, {}
                     else:
                         return self.get_obs(), -0.5, False, self.timestep_elapsed > MAX_TIMESTEP, {}
             elif duplicate_block or not supporting_neighbour:
@@ -245,16 +245,7 @@ if __name__ == "__main__":
     # 7: place col block
     
     env = GridWorldEnv(4, "targets")
-    env.building_zone[:, :, :3] = GridWorldEnv.COL_BLOCK
-    env.step(4)
-    env.step(4)
-    env.step(4)
-    env.step(4)
-    
-    env.step(6)
-    env.step(7)
-    env.step(5)
-    env.step(6)
-    env.step(4)
+    #env.building_zone[:, :, :3] = GridWorldEnv.COL_BLOCK
+    obs, reward, _, _, _ = env.step(7)
     env.render()
-    print(env.get_obs())
+    print(reward)
