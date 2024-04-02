@@ -60,8 +60,12 @@ class GridWorldEnv(gym.Env):
         self.observation_space = spaces.Box(low=0, high=1, shape=(self.batch_size, 3, self.dimension_size, self.dimension_size, self.dimension_size), dtype=int)
 
         self.timestep_elapsed = 0
-
-        np.copyto(self.obs[:, 2], random.choice(self.all_targets))
+        #print(self.all_targets)
+        
+        for i in range(self.batch_size):
+            individual_target = random.choice(self.all_targets)
+            np.copyto(self.obs[i, 2], individual_target)
+        #np.copyto(self.obs[:, 2], random.choice(self.all_targets))
         return self.get_obs(), {}
 
     def get_obs(self):
@@ -280,8 +284,9 @@ if __name__ == "__main__":
     
     env = GridWorldEnv(4, "targets", batch_size=2)
     #env.building_zone[:, :, :3] = GridWorldEnv.COL_BLOCK
-    env.agent_pos = np.array([[0, 0, 0], [0, 0, 0]])
+    #env.agent_pos = np.array([[0, 0, 0], [0, 0, 0]])
     obs, reward, _, _, _ = env.step([6, 6])
     env.step([0, 0])
-    env.render()
+    #env.render()
     print(reward)
+    print(env.target[0] == env.target[1])
