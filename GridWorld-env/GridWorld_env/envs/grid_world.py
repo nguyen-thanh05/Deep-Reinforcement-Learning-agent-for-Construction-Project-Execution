@@ -152,7 +152,7 @@ class GridWorldEnv(gym.Env):
                 ]
 
                 # Find if there is any supporting neighbour, or on the ground
-                supporting_neighbour = self.agent[env_id, 2] == 0
+                supporting_neighbour = self.agent_pos[env_id, 2] == 0
                 if supporting_neighbour is False:
                     for neighbour in neighbour_direction:
                         if neighbour[0] < 0 or neighbour[0] >= self.dimension_size \
@@ -207,7 +207,7 @@ class GridWorldEnv(gym.Env):
                 if not np.any(check_done):
                     return 1, True, False, {}
                 else:
-                    if self.building_zone[self.agent_pos[env_id,0], self.agent_pos[env_id,1], self.agent_pos[env_id,2]] == self.target[self.agent_pos[env_id,0], self.agent_pos[env_id,1], self.agent_pos[env_id,2]]:
+                    if self.building_zone[env_id, self.agent_pos[env_id,0], self.agent_pos[env_id,1], self.agent_pos[env_id,2]] == self.target[env_id, self.agent_pos[env_id,0], self.agent_pos[env_id,1], self.agent_pos[env_id,2]]:
                         return 0.5, False, self.timestep_elapsed > MAX_TIMESTEP, {}
                     else:
                         return -0.5, False, self.timestep_elapsed > MAX_TIMESTEP, {}
@@ -220,7 +220,7 @@ class GridWorldEnv(gym.Env):
         for i in range(self.batch_size):
             agent_pos_grid = np.zeros((self.batch_size, self.dimension_size, self.dimension_size, self.dimension_size), dtype=int)
             agent_pos_grid[i, self.agent_pos[i, 0], self.agent_pos[i, 1], self.agent_pos[i, 2]] = 1
-            print(self.agent_pos[i, 0], self.agent_pos[i, 1], self.agent_pos[i, 2])
+            #print(self.agent_pos[i, 0], self.agent_pos[i, 1], self.agent_pos[i, 2])
             # prepare some coordinates
             col_cube = self.building_zone[i] == GridWorldEnv.COL_BLOCK
             beam_cube = self.building_zone[i] == GridWorldEnv.BEAM_BLOCK
@@ -259,7 +259,8 @@ class GridWorldEnv(gym.Env):
             difference = np.isin(difference, -GridWorldEnv.COL_BLOCK)
             if np.any(difference):
                 return_array.append(False)
-            return_array.append(True)
+            else:
+                return_array.append(True)
         return return_array
     
     def close(self):
@@ -277,8 +278,10 @@ if __name__ == "__main__":
     # 6: place beam
     # 7: place col block
     
-    env = GridWorldEnv(4, "targets", batch_size=3)
+    env = GridWorldEnv(4, "targets", batch_size=2)
     #env.building_zone[:, :, :3] = GridWorldEnv.COL_BLOCK
-    obs, reward, _, _, _ = env.step([7, 0, 1])
+    env.agent_pos = np.array([[0, 0, 0], [0, 0, 0]])
+    obs, reward, _, _, _ = env.step([6, 6])
+    env.step([0, 0])
     env.render()
     print(reward)
