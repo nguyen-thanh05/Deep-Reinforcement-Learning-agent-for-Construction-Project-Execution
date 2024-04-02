@@ -1,5 +1,3 @@
-import time
-from tkinter import Grid
 import gymnasium as gym
 from gymnasium import spaces
 import numpy as np
@@ -14,18 +12,20 @@ class GridWorldEnv(gym.Env):
     COL_BLOCK = 1
     BEAM_BLOCK = 2
     EMPTY = 0
-    def __init__(self, dimension_size, path: str):
-        self.observation_space = spaces.Box(low=0, high=1, shape=(3, dimension_size, dimension_size, dimension_size), dtype=np.uint8)
+    def __init__(self, dimension_size, path: str, batch_size=1):
+        self.batch_size = batch_size
         self.dimension_size = dimension_size
         self.timestep_elapsed = 0
+        self.observation_space = spaces.Box(low=0, high=1, shape=(self.batch_size, 3, self.dimension_size, self.dimension_size, self.dimension_size), dtype=int)
+        
         self.record_sequence = []
 
-        self.agent_pos = [0, 0, 0]
-        self.obs = np.zeros((3, self.dimension_size, self.dimension_size, self.dimension_size), dtype=int)
+        self.agent_pos = np.zeros((self.batch_size, 3), dtype=int)
+        self.obs = np.zeros((self.batch_size, 3, self.dimension_size, self.dimension_size, self.dimension_size), dtype=int)
 
-        self.building_zone = self.obs[0]
-        self.agent_pos_grid = self.obs[1]
-        self.target = self.obs[2]
+        self.building_zone = self.obs[:, 0]
+        self.agent_pos_grid = self.obs[:, 1]
+        self.target = self.obs[:, 2]
         self.all_targets = None
 
         self._initialized = False
@@ -36,24 +36,32 @@ class GridWorldEnv(gym.Env):
         self.building_zone.fill(0)
 
         # self.agent_pos_grid.fill(0)
-        self.agent_pos_grid[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]] = 0
-        self.agent_pos_grid[0, 0, 0] = 1
-        self.agent_pos = [0, 0, 0]
+        self.agent_pos_grid.fill(0)
+        x = np.random.randint(0, self.dimension_size, size=(self.batch_size,))
+        y = np.random.randint(0, self.dimension_size, size=(self.batch_size,))
+        z = np.random.randint(0, self.dimension_size, size=(self.batch_size,))
+        
+        for i in range(self.batch_size):
+            self.agent_pos_grid[i, x[i], y[i], z[i]] = 1
+            self.agent_pos[i] = [x[i], y[i], z[i]]
+            
+        
 
         self.record_sequence = []
         # List of actions
         # 0: forward, 1: backward
         # 2: left, 3: right
         # 4: up, 5: down
-        # 6: pick
+        # 6: place block
+        #7 place beam        
         self.action_space = spaces.Discrete(8)
         self._init_obs()
 
-        self.observation_space = spaces.Box(low=0, high=1, shape=(3, self.dimension_size, self.dimension_size, self.dimension_size), dtype=int)
+        self.observation_space = spaces.Box(low=0, high=1, shape=(self.batch_size, 3, self.dimension_size, self.dimension_size, self.dimension_size), dtype=int)
 
         self.timestep_elapsed = 0
 
-        np.copyto(self.obs[2], random.choice(self.all_targets))
+        np.copyto(self.obs[:, 2], random.choice(self.all_targets))
         return self.get_obs(), {}
 
     def get_obs(self):
@@ -61,7 +69,8 @@ class GridWorldEnv(gym.Env):
         # agent_pos = self.obs[1]
 
         self.agent_pos_grid.fill(0)
-        self.agent_pos_grid[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]] = 1
+        for i in range(self.batch_size):
+            self.agent_pos_grid[i, self.agent_pos[i][0], self.agent_pos[i][1], self.agent_pos[i][2]] = 1
 
         return self.obs
 
@@ -81,7 +90,24 @@ class GridWorldEnv(gym.Env):
                  "TODO: more flexibility")
         self._initialized = True
 
-    def step(self, action):
+    def step(self, action_array):
+        reward_array = []
+        done_array = []
+        time_limit_passed_array = []
+        info_array = []        
+        for i, action in enumerate(action_array):
+            reward, done, time_exceeded, info = self._step(action, i)
+            reward_array.append(reward)
+            done_array.append(done)
+            #info_array.append(info)
+            time_limit_passed_array.append(time_exceeded)
+        
+        return self.get_obs(), np.array(reward_array), np.array(done_array), np.array(time_limit_passed_array), {}
+            
+                
+            
+            
+    def _step(self, action, env_id):
         self.timestep_elapsed += 1
 
         # List of actions
@@ -92,79 +118,80 @@ class GridWorldEnv(gym.Env):
         # 7: place col block
         if action == 1:
             # Y - 1
-            self.agent_pos[1] = max(0, self.agent_pos[1] - 1)
+            self.agent_pos[env_id, 1] = max(0, self.agent_pos[env_id, 1] - 1)
         elif action == 0:
             # Y + 1
-            self.agent_pos[1] = min(self.dimension_size - 1, self.agent_pos[1] + 1)
+            self.agent_pos[env_id, 1] = min(self.dimension_size - 1, self.agent_pos[env_id, 1] + 1)
 
         elif action == 2:
             # X - 1
-            self.agent_pos[0] = max(self.agent_pos[0] - 1, 0)
+            self.agent_pos[env_id, 0] = max(self.agent_pos[env_id, 0] - 1, 0)
 
         elif action == 3:
             # X + 1
-            self.agent_pos[0] = min(self.dimension_size - 1, self.agent_pos[0] + 1)
+            self.agent_pos[env_id, 0] = min(self.dimension_size - 1, self.agent_pos[env_id, 0] + 1)
 
         elif action == 4:
             # Z + 1
-            self.agent_pos[2] = min(self.dimension_size - 1, self.agent_pos[2] + 1)
+            self.agent_pos[env_id, 2] = min(self.dimension_size - 1, self.agent_pos[env_id, 2] + 1)
 
         elif action == 5:
             # Z - 1
-            self.agent_pos[2] = max(self.agent_pos[2] - 1, 0)
+            self.agent_pos[env_id, 2] = max(self.agent_pos[env_id, 2] - 1, 0)
 
         elif action == 6:  # Place a beam block
             # First check for finished columns:
-            if not self._check_columns_finish():
+            if not self._check_columns_finish()[env_id]:
                 duplicate_block = True
                 supporting_neighbour = False
             else:
                 # Find all 6 neighbouring directions
                 neighbour_direction = [
-                    [self.agent_pos[0] + delta_x, self.agent_pos[1] + delta_y, self.agent_pos[2] + delta_z]
+                    [self.agent_pos[env_id, 0] + delta_x, self.agent_pos[env_id, 1] + delta_y, self.agent_pos[env_id, 2] + delta_z]
                     for delta_x, delta_y, delta_z in GridWorldEnv.neighbors
                 ]
 
                 # Find if there is any supporting neighbour, or on the ground
-                if (supporting_neighbour := self.agent_pos[2] == 0) is False:
+                supporting_neighbour = self.agent[env_id, 2] == 0
+                if supporting_neighbour is False:
                     for neighbour in neighbour_direction:
                         if neighbour[0] < 0 or neighbour[0] >= self.dimension_size \
                                 or neighbour[1] < 0 or neighbour[1] >= self.dimension_size \
                                 or neighbour[2] < 0 or neighbour[2] >= self.dimension_size:
                             continue
 
-                        if self.building_zone[neighbour[0], neighbour[1], neighbour[2]] != GridWorldEnv.EMPTY:
+                        if self.building_zone[env_id, neighbour[0], neighbour[1], neighbour[2]] != GridWorldEnv.EMPTY:
                             supporting_neighbour = True
                             break
 
                 # If the space is already occupied
-                duplicate_block = self.building_zone[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]] != GridWorldEnv.EMPTY
+                duplicate_block = self.building_zone[env_id, self.agent_pos[env_id,0], self.agent_pos[env_id,1], self.agent_pos[env_id,2]] != GridWorldEnv.EMPTY
                 if supporting_neighbour and not duplicate_block:
-                    self.building_zone[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]] = GridWorldEnv.BEAM_BLOCK
+                    self.building_zone[env_id, self.agent_pos[env_id,0], self.agent_pos[env_id,1], self.agent_pos[env_id,2]] = GridWorldEnv.BEAM_BLOCK
         
         elif action == 7: # Place a column block
             
-            if self.building_zone[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]] != GridWorldEnv.EMPTY:
+            if self.building_zone[env_id, self.agent_pos[env_id, 0], self.agent_pos[env_id, 1], self.agent_pos[env_id, 2]] != GridWorldEnv.EMPTY:
                 duplicate_block = True
                 supporting_neighbour = False
                 
             else:
                 duplicate_block = False            
 
-                if self.agent_pos[2] == 0: # If the agent is on the ground
-                    self.building_zone[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]] = GridWorldEnv.COL_BLOCK
+                if self.agent_pos[env_id, 2] == 0: # If the agent is on the ground
+                    self.building_zone[env_id, self.agent_pos[env_id,0], self.agent_pos[env_id,1], self.agent_pos[env_id,2]] = GridWorldEnv.COL_BLOCK
                     supporting_neighbour = True
                 else:
-                    if self.building_zone[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2] - 1] == GridWorldEnv.COL_BLOCK:
+                    if self.building_zone[env_id, self.agent_pos[env_id,0], self.agent_pos[env_id,1], self.agent_pos[env_id, 2] - 1] == GridWorldEnv.COL_BLOCK:
                         supporting_neighbour = True
-                        self.building_zone[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]] = GridWorldEnv.COL_BLOCK
+                        self.building_zone[env_id, self.agent_pos[env_id, 0], self.agent_pos[env_id, 1], self.agent_pos[env_id, 2]] = GridWorldEnv.COL_BLOCK
                     else:
                         supporting_neighbour = False
         
 
         # return observation, reward, terminated, truncated, info
         if action < 6:
-            return self.get_obs(), -0.25, False, self.timestep_elapsed > MAX_TIMESTEP, {}
+            return -0.25, False, self.timestep_elapsed > MAX_TIMESTEP, {}
         # elif place_cmd:
         else:
             if supporting_neighbour and not duplicate_block:
@@ -178,38 +205,40 @@ class GridWorldEnv(gym.Env):
                 """
                 check_done = np.isin(self.building_zone[self.target != 0], 0)
                 if not np.any(check_done):
-                    return self.get_obs(), 1, True, False, {}
+                    return 1, True, False, {}
                 else:
-                    if self.building_zone[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]] == self.target[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]]:
-                        return self.get_obs(), 0.5, False, self.timestep_elapsed > MAX_TIMESTEP, {}
+                    if self.building_zone[self.agent_pos[env_id,0], self.agent_pos[env_id,1], self.agent_pos[env_id,2]] == self.target[self.agent_pos[env_id,0], self.agent_pos[env_id,1], self.agent_pos[env_id,2]]:
+                        return 0.5, False, self.timestep_elapsed > MAX_TIMESTEP, {}
                     else:
-                        return self.get_obs(), -0.5, False, self.timestep_elapsed > MAX_TIMESTEP, {}
+                        return -0.5, False, self.timestep_elapsed > MAX_TIMESTEP, {}
             elif duplicate_block or not supporting_neighbour:
-                return self.get_obs(), -1, False, self.timestep_elapsed > MAX_TIMESTEP, {}
+                return -1, False, self.timestep_elapsed > MAX_TIMESTEP, {}
 
     def render(self):
-        agent_pos_grid = np.zeros((self.dimension_size, self.dimension_size, self.dimension_size), dtype=int)
-        agent_pos_grid[self.agent_pos[0], self.agent_pos[1], self.agent_pos[2]] = 1
-
-        # prepare some coordinates
-        col_cube = self.building_zone == GridWorldEnv.COL_BLOCK
-        beam_cube = self.building_zone == GridWorldEnv.BEAM_BLOCK
-        agent_position_cube = agent_pos_grid == 1
-
         fig = plt.figure()
+        
+        for i in range(self.batch_size):
+            agent_pos_grid = np.zeros((self.batch_size, self.dimension_size, self.dimension_size, self.dimension_size), dtype=int)
+            agent_pos_grid[i, self.agent_pos[i, 0], self.agent_pos[i, 1], self.agent_pos[i, 2]] = 1
+            print(self.agent_pos[i, 0], self.agent_pos[i, 1], self.agent_pos[i, 2])
+            # prepare some coordinates
+            col_cube = self.building_zone[i] == GridWorldEnv.COL_BLOCK
+            beam_cube = self.building_zone[i] == GridWorldEnv.BEAM_BLOCK
+            agent_position_cube = agent_pos_grid[i] == 1
 
-        building_zone_render = col_cube | agent_position_cube | beam_cube
-        # set the colors of each object
-        colors = np.empty(building_zone_render.shape, dtype=object)
-        colors[col_cube] = '#7A88CCC0'
-        colors[agent_position_cube] = '#FFD65DC0'
-        colors[beam_cube] = '#FF5733C0'
-        # print(colors)
 
-        ax = fig.add_subplot(1, 2, 1, projection='3d')
-        ax.voxels(building_zone_render, facecolors=colors, edgecolor='k')
+            building_zone_render = col_cube | agent_position_cube | beam_cube
+            # set the colors of each object
+            colors = np.empty(building_zone_render.shape, dtype=object)
+            colors[col_cube] = '#7A88CCC0'
+            colors[agent_position_cube] = '#FFD65DC0'
+            colors[beam_cube] = '#FF5733C0'
+            # print(colors)
 
-        col_cube = self.target == GridWorldEnv.COL_BLOCK
+            ax = fig.add_subplot(1, self.batch_size, i + 1, projection='3d')
+            ax.voxels(building_zone_render, facecolors=colors, edgecolor='k')
+
+        """col_cube = self.target == GridWorldEnv.COL_BLOCK
         beam_cube = self.target == GridWorldEnv.BEAM_BLOCK
         target_render = col_cube | beam_cube
         # set the colors of each object
@@ -217,17 +246,21 @@ class GridWorldEnv(gym.Env):
         colors[col_cube] = '#7A88CCC0'
         colors[beam_cube] = '#FF5733C0'
         ax = fig.add_subplot(1, 2, 2, projection='3d')
-        ax.voxels(target_render, facecolors=colors, edgecolor='k')
+        ax.voxels(target_render, facecolors=colors, edgecolor='k')"""
 
         plt.show()
 
     
     def _check_columns_finish(self):
-        difference = self.building_zone - self.target
-        difference = np.isin(difference, -GridWorldEnv.COL_BLOCK)
-        if np.any(difference):
-            return False
-        return True
+        return_array = []
+        for i in range(self.batch_size):
+            
+            difference = self.building_zone[i] - self.target[i]
+            difference = np.isin(difference, -GridWorldEnv.COL_BLOCK)
+            if np.any(difference):
+                return_array.append(False)
+            return_array.append(True)
+        return return_array
     
     def close(self):
         pass
@@ -244,8 +277,8 @@ if __name__ == "__main__":
     # 6: place beam
     # 7: place col block
     
-    env = GridWorldEnv(4, "targets")
+    env = GridWorldEnv(4, "targets", batch_size=3)
     #env.building_zone[:, :, :3] = GridWorldEnv.COL_BLOCK
-    obs, reward, _, _, _ = env.step(7)
+    obs, reward, _, _, _ = env.step([7, 0, 1])
     env.render()
     print(reward)
