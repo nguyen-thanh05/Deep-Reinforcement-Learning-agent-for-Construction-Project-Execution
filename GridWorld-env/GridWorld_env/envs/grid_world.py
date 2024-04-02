@@ -455,7 +455,7 @@ class GridWorldEnv(gym.Env):
         return False
     """
 
-    def _isdDoneBuildingStructure(self):
+    def _isDoneBuildingStructure(self):
         # check if col is finished
         col_done = self._check_finish_columns()
         beam_done = self._isBeamDone()
