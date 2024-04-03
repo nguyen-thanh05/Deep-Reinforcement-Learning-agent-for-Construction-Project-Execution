@@ -348,9 +348,11 @@ class GridWorldEnv(gym.Env):
     
     """
     def _isScaffoldValid(self, current_pos):
+        sneighbors = [[-1, 0, 0], [1, 0, 0], [0, -1, 0], [0, 1, 0], [0, 0, -1]]
+                       # LEFT       RIGHT       BEHIND      FRONT     DOWN     UP         
         neighbour_direction = [
                 [current_pos[0] + delta_x, current_pos[1] + delta_y, current_pos[2] + delta_z]
-                for delta_x, delta_y, delta_z in GridWorldEnv.neighbors
+                for delta_x, delta_y, delta_z in sneighbors
             ]
 
         # Find if there is any supporting neighbour, or on the ground
@@ -438,20 +440,41 @@ class GridWorldEnv(gym.Env):
         if np.any(difference) or np.any(scafoldDiff):
             return False
         return True"""
-    
+    """
     def _isDoneBuildingStructure(self):
 
         # building_zone[self.target != 0] is an array indexed by non zero element from target
-        # if  building_zone[self.target != 0] has 0 element, check_done[i, j] = True
+        # if  building_zone[self.target != 0] has 0 element, then we havent fill this square yet
         check_done = np.isin(self.building_zone[self.target != 0], 0)
         # done if there are no 0 elements when index building_zone with non zero entry in target
+
+        # scafold in building zone dont count 
+
         if not np.any(check_done):  
+            return True
+        return False
+    """
+
+    def _isDoneBuildingStructure(self):
+        # check if col is finished
+        col_done = self._check_finish_columns()
+        beam_done = self._isBeamDone()
+    
+        scaffold_left = np.any(np.isin(self.building_zone[self.target == 0], GridWorldEnv.SCAFFOLD))
+        if col_done and beam_done and not scaffold_left:
+            return True
+        return False
+        
+    def _isBeamDone(self):
+        check = np.isin(self.building_zone[self.target == GridWorldEnv.BEAM_BLOCK], GridWorldEnv.BEAM_BLOCK)
+        if np.all(check):
             return True
         return False
     
     def _check_finish_columns(self):
-        check = np.isin(self.building_zone[self.target == GridWorldEnv.COL_BLOCK], 0)
-        if not np.any(check):
+        # 
+        check = np.isin(self.building_zone[self.target == GridWorldEnv.COL_BLOCK], GridWorldEnv.COL_BLOCK)
+        if np.all(check):
             return True
         return False
     
@@ -593,7 +616,7 @@ class GridWorldEnv(gym.Env):
                 self.building_zone[current_pos[0], current_pos[1], current_pos[2]] = GridWorldEnv.COL_BLOCK
 
                 if  self.target[current_pos[0], current_pos[1], current_pos[2]] == self.building_zone[current_pos[0], current_pos[1], current_pos[2]]:
-                    R = 0
+                    R = 0.9  # placing scafold column costs (-0.2 + -0.2) = -0.4. Placing column stack costs -1.2. (6*-0.2) = -1.2. so 0.9 + -1.2 > -0.4
                 else:
                     R = -0.5
             else:
@@ -638,7 +661,7 @@ class GridWorldEnv(gym.Env):
                     self.building_zone[current_pos[0], current_pos[1], current_pos[2]] = GridWorldEnv.BEAM_BLOCK
                     if  self.target[current_pos[0], current_pos[1], current_pos[2]] == self.building_zone[current_pos[0], current_pos[1], current_pos[2]]:
                         # good placement R = -1.5 + 1.25 = -0.25
-                        R = 0
+                        R = 0.9
                     else:
                         R = -0.5
                 else:
@@ -738,6 +761,9 @@ def test(env, agent_id):
 
     
     return
+
+
+
 
 if __name__ == "__main__":
     import time
