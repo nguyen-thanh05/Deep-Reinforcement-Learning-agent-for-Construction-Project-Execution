@@ -223,7 +223,7 @@ for i_episode in range(num_episodes):
         #print(env.unwrapped.get_seqsuence())
         #env.unwrapped.render()
     
-    if i_episode % 500 == 0 and i_episode > 1:
+    if i_episode % 200 == 0 and i_episode > 1:
         torch.save(policy_net, "checkpoint" + str(i_episode) + "_policy.pt")
         torch.save(target_net, "checkpoint" + str(i_episode) + "_target.pt")
         
