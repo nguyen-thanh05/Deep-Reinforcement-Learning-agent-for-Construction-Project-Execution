@@ -82,6 +82,7 @@ class GridWorldEnv(gym.Env):
         self.dimension_size = dimension_size
         self.timestep_elapsed = 0
         self.finished_structure = False
+        self.finished_structure_with_scafold = False
         
         self.record_sequence = []
         # 1 for building zone, 1 for target, 1 for each agent position, and 1 for all agents position
@@ -121,6 +122,7 @@ class GridWorldEnv(gym.Env):
         self.building_zone.fill(0)
         self.finished_structure = False
         self.finished_structure_reward_used = False
+        self.finished_structure_with_scafold = False
 
         self.AgentsPos = np.zeros((self.num_agents, 3), dtype=int)
 
@@ -455,6 +457,7 @@ class GridWorldEnv(gym.Env):
         return False
     """
 
+    # done and there is no more scaffold
     def _isDoneBuildingStructure(self):
         # check if col is finished
         col_done = self._check_finish_columns()
@@ -462,6 +465,16 @@ class GridWorldEnv(gym.Env):
     
         scaffold_left = np.any(np.isin(self.building_zone[self.target == 0], GridWorldEnv.SCAFFOLD))
         if col_done and beam_done and not scaffold_left:
+            return True
+        return False
+    # done structure but there is scafold left 
+    def _isDoneBuildingStructureWithScafold(self):
+        # check if col is finished
+        col_done = self._check_finish_columns()
+        beam_done = self._isBeamDone()
+    
+        #scaffold_left = np.any(np.isin(self.building_zone[self.target == 0], GridWorldEnv.SCAFFOLD))
+        if col_done and beam_done: #and not scaffold_left:
             return True
         return False
         
@@ -561,7 +574,7 @@ class GridWorldEnv(gym.Env):
             
         elif (action == self.action_enum.REMOVE_SCAFOLD):
             R = -0.2
-            if self.finished_structure:
+            if self.finished_structure_with_scafold:
                 R = 0.2
             terminated = False
             truncated = False
@@ -670,10 +683,15 @@ class GridWorldEnv(gym.Env):
                 obs = self.get_obs(agent_id)
                 #self.mutex.release()
                 # check if structure is complete
-                if (is_valid and self._isDoneBuildingStructure()):  #  only do terminal check if we placed a block to save computation
+                if (is_valid and self._isDoneBuildingStructureWithScafold()):  #  only do terminal check if we placed a block to save computation
+                    #terminated = True
+                    R = 1
+                    self.finished_structure_with_scafold = True
+                elif (is_valid and self._isDoneBuildingStructure()):  #  only do terminal check if we placed a block to save computation
                     #terminated = True
                     R = 1
                     self.finished_structure = True
+                
                 if self.timestep_elapsed > MAX_TIMESTEP:
                     truncated = True
                     return obs, R, terminated, truncated, {}
@@ -874,6 +892,62 @@ if __name__ == "__main__":
     """env.step((8, 0))
     
     env.step((0, 0))"""
+
+    # forward increment the y
+    # left increment the x
+    # place BEAM
+    env.step((Action.PLACE_BEAM, 0))
+    # move forward
+    env.step((Action.FORWARD, 0))
+    # place Beam
+    env.step((Action.PLACE_BEAM, 0))
+
+    # move left 
+    for i in range(2):
+        env.step((Action.LEFT, 0))
+        env.step((Action.PLACE_BEAM, 0))
+    # move backward
+    env.step((Action.BACKWARD, 0))
+    # move down
+    env.step((Action.DOWN, 0))
+    #place scafold
+    env.step((Action.PLACE_SCAFOLD, 0))
+    # move backward and place scafold
+    env.step((Action.BACKWARD, 0))
+    env.step((Action.PLACE_SCAFOLD, 0))
+
+
+    # move up and move backward
+    env.step((Action.UP, 0))
+    env.step((Action.BACKWARD, 0))
+
+    for i in range(2):
+        # move right 
+        env.step((Action.RIGHT, 0))
+    for i in range(3):
+        # move left and place beam
+        env.step((Action.LEFT, 0))
+        env.step((Action.PLACE_BEAM, 0))
+    for i in range(3):
+        # move forward and place beam
+        env.step((Action.FORWARD, 0))
+        env.step((Action.PLACE_BEAM, 0))
+    for i in range(1):
+        # move right and place beam
+        env.step((Action.RIGHT, 0))
+        env.step((Action.PLACE_BEAM, 0))
+
+
+    # move backward and move down and remove scafold
+    env.step((Action.BACKWARD, 0))
+    env.step((Action.DOWN, 0))
+    # print  reward for removing scafold
+    _, R, _, _, _ = env.step((Action.REMOVE_SCAFOLD, 0))
+    print("isdone structure without scafold", env.unwrapped.finished_structure_with_scafold)
+    print("reward is ", R)
+
+    
+
     time.sleep(0.5)
     print(env.building_zone)
     env.render()
