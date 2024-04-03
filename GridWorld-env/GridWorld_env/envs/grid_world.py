@@ -195,7 +195,7 @@ class GridWorldEnv(gym.Env):
 
         # return observation, reward, terminated, truncated, info
         if action < 6:
-            return -0.25, False, self.timestep_elapsed > MAX_TIMESTEP, {}
+            return -0.35, False, self.timestep_elapsed > MAX_TIMESTEP, {}
         # elif place_cmd:
         else:
             if supporting_neighbour and not duplicate_block:
@@ -212,7 +212,7 @@ class GridWorldEnv(gym.Env):
                     return 1, True, False, {}
                 else:
                     if self.building_zone[env_id, self.agent_pos[env_id,0], self.agent_pos[env_id,1], self.agent_pos[env_id,2]] == self.target[env_id, self.agent_pos[env_id,0], self.agent_pos[env_id,1], self.agent_pos[env_id,2]]:
-                        return 0.5, False, self.timestep_elapsed > MAX_TIMESTEP, {}
+                        return 0.75, False, self.timestep_elapsed > MAX_TIMESTEP, {}
                     else:
                         return -0.5, False, self.timestep_elapsed > MAX_TIMESTEP, {}
             elif duplicate_block or not supporting_neighbour:
