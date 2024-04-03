@@ -782,25 +782,9 @@ def test(env, agent_id):
 
 
 
-
-if __name__ == "__main__":
-    import time
-    # List of actions
-    # 
-    """
-    FORWARD = 0
-    BACKWARD = 1
-    LEFT = 2
-    RIGHT = 3
-    UP = 4
-    DOWN = 5
-    PLACE_SCAFOLD = 6
-    REMOVE_SCAFOLD = 7
-    PLACE_BEAM = 8
-    PLACE_COLUMN = 9"""
-
-    env = GridWorldEnv(4, path="targets" , num_agents=1, debug=True)
-    
+def test_dim_4(env):
+    env.agent_pos_grid.fill(0)
+    env.agent_pos_grid[0, 0, 0] = 1 
     env.step((0, 0))
     env.step((3, 0))
     
@@ -945,11 +929,160 @@ if __name__ == "__main__":
     _, R, _, _, _ = env.step((Action.REMOVE_SCAFOLD, 0))
     print("isdone structure without scafold", env.unwrapped.finished_structure_with_scafold)
     print("reward is ", R)
-
     
+    
+if __name__ == "__main__":
+    import time
+    # List of actions
+    # 
+    """
+    FORWARD = 0
+    BACKWARD = 1
+    LEFT = 2
+    RIGHT = 3
+    UP = 4
+    DOWN = 5
+    PLACE_SCAFOLD = 6
+    REMOVE_SCAFOLD = 7
+    PLACE_BEAM = 8
+    PLACE_COLUMN = 9"""
 
-    time.sleep(0.5)
-    print(env.building_zone)
+    env = GridWorldEnv(6, path="targets" , num_agents=1, debug=True)
+    
+    #test_dim_4(env)
+    
+    env.agent_pos_grid.fill(0)
+    #env.agent_pos_grid[0, 0, 0] = 1
+    env.AgentsPos[0] = [0, 0, 0]
+    env.step((0, 0))
+    env.step((3, 0))
+    for _ in range(3):
+        env.step((9, 0))
+        env.step((1, 0))
+        env.step((6, 0))
+        env.step((0, 0))
+        env.step((2, 0))
+        env.step((6, 0))
+        env.step((3, 0))
+        env.step((0, 0))
+        env.step((6, 0))
+        env.step((1, 0))
+        env.step((3, 0))
+        env.step((6, 0))
+        env.step((2, 0))
+        env.step((4, 0))
+    
+    [env.step((3, 0)) for _ in range(3)]
+    [env.step((5, 0)) for _ in range(4)]
+    
+    for _ in range(3):
+        env.step((9, 0))
+        env.step((1, 0))
+        env.step((6, 0))
+        env.step((0, 0))
+        env.step((2, 0))
+        env.step((6, 0))
+        env.step((3, 0))
+        env.step((0, 0))
+        env.step((6, 0))
+        env.step((1, 0))
+        env.step((3, 0))
+        env.step((6, 0))
+        env.step((2, 0))
+        env.step((4, 0))
+    
+    [env.step((0, 0)) for _ in range(3)]
+    [env.step((5, 0)) for _ in range(4)]
+    
+    
+    for _ in range(3):
+        env.step((9, 0))
+        env.step((1, 0))
+        env.step((6, 0))
+        env.step((0, 0))
+        env.step((2, 0))
+        env.step((6, 0))
+        env.step((3, 0))
+        env.step((0, 0))
+        env.step((6, 0))
+        env.step((1, 0))
+        env.step((3, 0))
+        env.step((6, 0))
+        env.step((2, 0))
+        env.step((4, 0))
+    
+    [env.step((2, 0)) for _ in range(3)]
+    [env.step((5, 0)) for _ in range(4)]
+    
+    for _ in range(3):
+        env.step((9, 0))
+        env.step((1, 0))
+        env.step((6, 0))
+        env.step((0, 0))
+        env.step((2, 0))
+        env.step((6, 0))
+        env.step((3, 0))
+        env.step((0, 0))
+        env.step((6, 0))
+        env.step((1, 0))
+        env.step((3, 0))
+        env.step((6, 0))
+        env.step((2, 0))
+        env.step((4, 0))
+    
+    env.step((1, 0))
+    env.step((5, 0))
+    env.step((2, 0))
+    for _ in range(3):
+        env.step((6, 0))
+        env.step((3,0))
+        env.step((3, 0))
+        env.step((6, 0))
+        env.step((1, 0))
+        env.step((2, 0))
+        env.step((2, 0))
+    
+    for _ in range(6):
+        env.step((6, 0))
+        env.step((3, 0))
+    for _ in range(6):
+        env.step((6, 0))
+        env.step((0, 0))
+    for _ in range(6):
+        env.step((6, 0))
+        env.step((2, 0))
+    
+    [env.step((3, 0)) for _ in range(3)]
+    env.step((1, 0))
+    env.step((1, 0))
+    env.step((6, 0))
+    env.step((1, 0))
+    env.step((6, 0))      
+    env.step((4, 0))
+    [env.step((2, 0)) for _ in range(2)]  
+    
+    env.step((1, 0))
+    
+    for _ in range(4):
+        env.step((8, 0))
+        env.step((0, 0))
+    env.step((1, 0))
+    for _ in range(4):
+        env.step((8, 0))
+        env.step((3, 0))
+    env.step((2, 0))
+    for _ in range(4):
+        env.step((8, 0))
+        env.step((1, 0))
+    env.step((0, 0))
+    for _ in range(4):
+        env.step((8, 0))
+        env.step((2, 0))
+    
+    env.step((5, 0))
+    obs, reward, done, terminated, _ = env.step((7, 0))
+    print(reward)
+        
     env.render()
     
     
