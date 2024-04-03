@@ -88,7 +88,7 @@ if torch.cuda.is_available():
 target_net.load_state_dict(policy_net.state_dict())
 
 optimiser = optim.Adam(policy_net.parameters(), lr=STEPSIZE, eps=1.5e-4)
-memory = ReplayBuffer(obs_dim=(3,6,6,6), size=20000, n_step=N_STEP, gamma = GAMMA, batch_size=BATCH_SIZE)
+memory = ReplayBuffer(obs_dim=(3,6,6,6), size=30000, n_step=N_STEP, gamma = GAMMA, batch_size=BATCH_SIZE)
 
 steps_done = 0
 
@@ -117,7 +117,7 @@ episode_durations = []
 
 
 def optimise_model(beta):
-    if len(memory) < 8192:
+    if len(memory) < 8000:
         return 0, torch.tensor([0], dtype=torch.float32)
     transitions = memory.sample_batch() 
     batch = Transition(
