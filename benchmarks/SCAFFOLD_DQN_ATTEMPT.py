@@ -31,28 +31,28 @@ class DoubleDueling_DQN(nn.Module):
         
         self.lstmcell = nn.LSTMCell(1024, 1024)
         
-        self.actions = nn.Linear(1024, action_dim)
-        self.advantage = nn.Linear(1024, 1)
+        self.actions = nn.Linear(2048, action_dim)
+        self.advantage = nn.Linear(2048, 1)
     def forward(self, x, h, c):
         original_state = x
                     
         x = self.conv1(x)
         x = torch.cat([x, original_state], dim=1)
-        x = F.relu6(x)
+        x = F.gelu(x)
         
         x = self.conv2(x)
         x = torch.cat([x, original_state], dim=1)
-        x = F.relu6(x)
+        x = F.gelu(x)
         
         x = nn.Flatten()(x)
         x = self.fc1(x)
-        x = F.relu6(x)
+        x = F.gelu(x)
         
         h, c = self.lstmcell(x, (h, c))
         
-        actions = self.actions(h)
-        
-        x = self.advantage(h) + (actions - actions.mean(dim=1, keepdim=True))
+        actions = self.actions(torch.cat([h, x], dim=1))
+        advantage = self.advantage(torch.cat([h, x], dim=1))
+        x = advantage + (actions - actions.mean(dim=1, keepdim=True))
         return x, h, c
 
 """import torchinfo
@@ -61,7 +61,7 @@ torchinfo.summary(DoubleDueling_DQN(4, 8), input_size=[(1, 3, 4, 4, 4), (1, 1024
 
 
 BATCH_SIZE = 64
-GAMMA = 0.99
+GAMMA = 0.98
 EPS_START = 0.99
 EPS_END = 0.01
 EPS_DECAY = 5500000
@@ -71,14 +71,14 @@ BETA_START = 0.4
 BETA_END = 1
 BETA_LINEAR_CAP = 5500 * 1500
 N_STEP = 1
-
+ENV_DIM = 6
 
 n_actions = 10
-env = gym.make("GridWorld_env/GridWorld", dimension_size=4, path="targets")
+env = gym.make("GridWorld_env/GridWorld", dimension_size=ENV_DIM, path="targets")
 env.reset()
 
-policy_net = DoubleDueling_DQN(4, n_actions)
-target_net = DoubleDueling_DQN(4, n_actions)
+policy_net = DoubleDueling_DQN(ENV_DIM, n_actions)
+target_net = DoubleDueling_DQN(ENV_DIM, n_actions)
 
 # if cuda avaialble, move the networks to the GPU
 if torch.cuda.is_available():
@@ -87,7 +87,7 @@ if torch.cuda.is_available():
 target_net.load_state_dict(policy_net.state_dict())
 
 optimiser = optim.Adam(policy_net.parameters(), lr=STEPSIZE, eps=1.5e-4)
-memory = ReplayBuffer(obs_dim=(3,4,4,4), size=40000, n_step=N_STEP, gamma = GAMMA, batch_size=BATCH_SIZE)
+memory = ReplayBuffer(obs_dim=(3,4,4,4), size=30000, n_step=N_STEP, gamma = GAMMA, batch_size=BATCH_SIZE)
 
 steps_done = 0
 
