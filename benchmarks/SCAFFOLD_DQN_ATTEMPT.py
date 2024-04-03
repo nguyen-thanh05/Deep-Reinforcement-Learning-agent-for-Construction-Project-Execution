@@ -72,6 +72,7 @@ BETA_END = 1
 BETA_LINEAR_CAP = 5500 * 1500
 N_STEP = 1
 ENV_DIM = 6
+ZERO_LSTM_HISTORY_PROB = 0.25
 
 n_actions = 10
 env = gym.make("GridWorld_env/GridWorld", dimension_size=ENV_DIM, path="targets")
@@ -87,7 +88,7 @@ if torch.cuda.is_available():
 target_net.load_state_dict(policy_net.state_dict())
 
 optimiser = optim.Adam(policy_net.parameters(), lr=STEPSIZE, eps=1.5e-4)
-memory = ReplayBuffer(obs_dim=(3,4,4,4), size=30000, n_step=N_STEP, gamma = GAMMA, batch_size=BATCH_SIZE)
+memory = ReplayBuffer(obs_dim=(3,6,6,6), size=20000, n_step=N_STEP, gamma = GAMMA, batch_size=BATCH_SIZE)
 
 steps_done = 0
 
@@ -138,6 +139,10 @@ def optimise_model(beta):
     reward_batch = batch.reward
     h = batch.h
     c = batch.c
+    
+    zero_history_probbability = torch.rand((BATCH_SIZE, ))
+    h[zero_history_probbability <= ZERO_LSTM_HISTORY_PROB] = torch.zeros((1024), device='cuda')
+    c[zero_history_probbability <= ZERO_LSTM_HISTORY_PROB] = torch.zeros((1024), device='cuda')
     
     tmp, _, _ = policy_net(state_batch, h, c)
     state_action_values = tmp.gather(1, action_batch.unsqueeze(1))
