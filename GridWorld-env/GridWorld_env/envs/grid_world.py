@@ -157,7 +157,7 @@ class GridWorldEnv(gym.Env):
 
                 # Find if there is any supporting neighbour, or on the ground
                 supporting_neighbour = self.agent_pos[env_id, 2] == 0
-                if supporting_neighbour is False:
+                if supporting_neighbour == False:
                     for neighbour in neighbour_direction:
                         if neighbour[0] < 0 or neighbour[0] >= self.dimension_size \
                                 or neighbour[1] < 0 or neighbour[1] >= self.dimension_size \
@@ -283,10 +283,16 @@ if __name__ == "__main__":
     # 7: place col block
     
     env = GridWorldEnv(4, "targets", batch_size=2)
-    #env.building_zone[:, :, :3] = GridWorldEnv.COL_BLOCK
-    #env.agent_pos = np.array([[0, 0, 0], [0, 0, 0]])
+    env.building_zone[:, :, :, 0:3] = GridWorldEnv.COL_BLOCK
+    env.agent_pos = np.array([[0, 0, 0], [0, 0, 0]])
+    obs, reward, _, _, _ = env.step([4, 4])
+    obs, reward, _, _, _ = env.step([4, 4])
+    obs, reward, _, _, _ = env.step([4, 4])
+    obs, reward, _, _, _ = env.step([4, 4])
     obs, reward, _, _, _ = env.step([6, 6])
-    env.step([0, 0])
-    #env.render()
-    print(reward)
-    print(env.target[0] == env.target[1])
+    obs, reward, _, _, _ = env.step([0, 0])
+    
+    
+    env.render()
+    #print(reward)
+    #print(env.target[0] == env.target[1])
