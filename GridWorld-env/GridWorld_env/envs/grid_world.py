@@ -30,6 +30,7 @@ class GridWorldEnv(gym.Env):
 
         self._initialized = False
         self.loader = TargetLoader(path)
+        self.done_array = np.zeros((self.batch_size,), dtype=bool)
         self.reset()
 
     def reset(self, seed=None, options=None):
@@ -45,7 +46,7 @@ class GridWorldEnv(gym.Env):
             self.agent_pos_grid[i, x[i], y[i], z[i]] = 1
             self.agent_pos[i] = [x[i], y[i], z[i]]
             
-        
+        self.done_array = np.zeros((self.batch_size,), dtype=bool)
 
         self.record_sequence = []
         # List of actions
@@ -195,7 +196,7 @@ class GridWorldEnv(gym.Env):
 
         # return observation, reward, terminated, truncated, info
         if action < 6:
-            return -0.35, False, self.timestep_elapsed > MAX_TIMESTEP, {}
+            return -0.35, self.done_array[env_id], self.timestep_elapsed > MAX_TIMESTEP, {}
         # elif place_cmd:
         else:
             if supporting_neighbour and not duplicate_block:
@@ -209,14 +210,15 @@ class GridWorldEnv(gym.Env):
                 """
                 check_done = np.isin(self.building_zone[env_id][self.target[env_id] != 0], 0)
                 if not np.any(check_done):
-                    return 1, True, False, {}
+                    self.done_array[env_id] = True
+                    return 1, self.done_array[env_id], False, {}
                 else:
                     if self.building_zone[env_id, self.agent_pos[env_id,0], self.agent_pos[env_id,1], self.agent_pos[env_id,2]] == self.target[env_id, self.agent_pos[env_id,0], self.agent_pos[env_id,1], self.agent_pos[env_id,2]]:
-                        return 0.75, False, self.timestep_elapsed > MAX_TIMESTEP, {}
+                        return 0.75, self.done_array[env_id], self.timestep_elapsed > MAX_TIMESTEP, {}
                     else:
-                        return -0.5, False, self.timestep_elapsed > MAX_TIMESTEP, {}
+                        return -0.5, self.done_array[env_id], self.timestep_elapsed > MAX_TIMESTEP, {}
             elif duplicate_block or not supporting_neighbour:
-                return -1, False, self.timestep_elapsed > MAX_TIMESTEP, {}
+                return -1, self.done_array[env_id], self.timestep_elapsed > MAX_TIMESTEP, {}
 
     def render(self):
         fig = plt.figure()
