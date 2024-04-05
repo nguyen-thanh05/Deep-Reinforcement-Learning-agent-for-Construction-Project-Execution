@@ -207,7 +207,7 @@ class GridWorldEnv(gym.Env):
                 |      1        |     1       |        0      |   -1
                 |      2        |      2      |         1     |    0
                 """
-                check_done = np.isin(self.building_zone[self.target != 0], 0)
+                check_done = np.isin(self.building_zone[env_id][self.target[env_id] != 0], 0)
                 if not np.any(check_done):
                     return 1, True, False, {}
                 else:
@@ -283,7 +283,9 @@ if __name__ == "__main__":
     # 7: place col block
     
     env = GridWorldEnv(4, "targets", batch_size=2)
-    env.building_zone[:, :, :, 0:3] = GridWorldEnv.COL_BLOCK
+    env.building_zone[0, :, :, :] = GridWorldEnv.COL_BLOCK
+    print(env.building_zone[1][env.target[1] != 0].shape)
+    print(not np.any(np.isin(env.building_zone[0][env.target[0] != 0], 0)))
     env.agent_pos = np.array([[0, 0, 0], [0, 0, 0]])
     obs, reward, _, _, _ = env.step([4, 4])
     obs, reward, _, _, _ = env.step([4, 4])
