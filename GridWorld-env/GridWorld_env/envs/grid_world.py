@@ -683,14 +683,14 @@ class GridWorldEnv(gym.Env):
                 obs = self.get_obs(agent_id)
                 #self.mutex.release()
                 # check if structure is complete
-                if (is_valid and self._isDoneBuildingStructureWithScafold()):  #  only do terminal check if we placed a block to save computation
+                if (is_valid and self._isDoneBuildingStructureWithScafold() and not self.finished_structure_with_scafold):  #  only do terminal check if we placed a block to save computation
                     #terminated = True
                     R = 1
                     self.finished_structure_with_scafold = True
-                elif (is_valid and self._isDoneBuildingStructure()):  #  only do terminal check if we placed a block to save computation
+                """elif (is_valid and self._isDoneBuildingStructure()):  #  only do terminal check if we placed a block to save computation
                     #terminated = True
                     R = 1
-                    self.finished_structure = True
+                    self.finished_structure = True"""
                 
                 if self.timestep_elapsed > MAX_TIMESTEP:
                     truncated = True
