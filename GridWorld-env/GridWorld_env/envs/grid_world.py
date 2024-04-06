@@ -548,7 +548,7 @@ class GridWorldEnv(gym.Env):
             return obs, R, terminated, truncated, {}
 
         elif (action == self.action_enum.PLACE_SCAFOLD):
-            R = -0.2
+            R = -0.3
             terminated = False
             truncated = False
             is_valid = False
@@ -573,7 +573,7 @@ class GridWorldEnv(gym.Env):
             return obs, R, terminated, truncated, {}
             
         elif (action == self.action_enum.REMOVE_SCAFOLD):
-            R = -0.2
+            R = -0.3
             if self.finished_structure_with_scafold:
                 R = 0.2
             terminated = False
