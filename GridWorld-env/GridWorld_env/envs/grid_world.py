@@ -5,7 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 MAX_TIMESTEP = 3000
 from target_loader import TargetLoader
-
+import io
 
 class Action:
     FORWARD = 0
@@ -460,7 +460,31 @@ class GridWorldEnv(gym.Env):
         obs = self.get_obs()
         return obs, reward_array , self.done_array, truncated_array, {}
 
+    def send_plot_to_tensorboard(self):
+        fig  = plt.figure(figsize=(15, 10))
+        agent_pos_grid = np.zeros((self.batch_size, self.dimension_size, self.dimension_size, self.dimension_size), dtype=int)
+        
+        for i in range(self.batch_size):
+            agent_pos_grid[i, self.agent_pos[i][0], self.agent_pos[i][1], self.agent_pos[i][2]] = 1
 
+            col_cube = self.building_zone[i] == GridWorldEnv.COL_BLOCK
+            beam_cube = self.building_zone[i] == GridWorldEnv.BEAM_BLOCK
+            scaffold_cube = self.building_zone[i] == GridWorldEnv.SCAFFOLD
+            
+            agent_position_cube = agent_pos_grid[i] == 1    
+            building_zone_render = col_cube | agent_position_cube | beam_cube | scaffold_cube
+            # set the colors of each object
+            colors = np.empty(building_zone_render.shape, dtype=object)
+            colors[col_cube] = '#7A88CCC0'
+            colors[agent_position_cube] = '#FFD65DC0'
+            colors[beam_cube] = '#FF5733C0'
+            colors[scaffold_cube] = '#f3f6f4C0'
+            
+            ax = fig.add_subplot(1, self.batch_size, i + 1, projection='3d')
+            ax.voxels(building_zone_render, facecolors=colors, edgecolor='k')
+            ax.set_title(f"Agent {i+1}")
+        return fig
+        
     def render(self):
         fig  = plt.figure()
         agent_pos_grid = np.zeros((self.batch_size, self.dimension_size, self.dimension_size, self.dimension_size), dtype=int)
