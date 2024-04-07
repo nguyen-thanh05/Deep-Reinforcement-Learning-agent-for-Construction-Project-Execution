@@ -368,7 +368,7 @@ class RolloutStorage(object):
 NUM_STEP = 3000  # Cap the number of steps to run for each env
 NUM_PROCESSES = 8  # Number of processes to use
 ENV_DIM = 6  # Dimension of one size of the building zone in the env
-NUM_ACTION = 8  # Number of actions in the action space
+NUM_ACTION = 10  # Number of actions in the action space
 NUM_EPISODE = 2500
 NUM_STEP_TOTAL = NUM_STEP * NUM_EPISODE * NUM_PROCESSES
 GAMMA = 0.95  # Discount factor
