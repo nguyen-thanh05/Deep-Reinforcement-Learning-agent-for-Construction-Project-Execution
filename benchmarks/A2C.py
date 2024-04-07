@@ -366,15 +366,15 @@ class RolloutStorage(object):
                 value_preds_batch, return_batch, masks_batch, old_action_log_probs_batch, adv_targ
                 
 NUM_STEP = 3000  # Cap the number of steps to run for each env
-NUM_PROCESSES = 8  # Number of processes to use
+NUM_PROCESSES = 32  # Number of processes to use
 ENV_DIM = 6  # Dimension of one size of the building zone in the env
 NUM_ACTION = 10  # Number of actions in the action space
 NUM_EPISODE = 2500
 NUM_STEP_TOTAL = NUM_STEP * NUM_EPISODE * NUM_PROCESSES
 GAMMA = 0.95  # Discount factor
 VALUE_COEFF = 0.07  # Value loss coefficient
-ENTROPY_COEFF = 0.02  # Entropy regularisation coefficient
-LR = 0.00005
+ENTROPY_COEFF = 0.03  # Entropy regularisation coefficient
+LR = 0.000008
 RMS_EPSILON = 1e-08
 RMS_ALPHA = 0.99
 ENTROPY_COEFF_START = 1

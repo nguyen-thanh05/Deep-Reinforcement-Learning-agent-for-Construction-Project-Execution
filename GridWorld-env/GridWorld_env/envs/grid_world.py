@@ -464,7 +464,7 @@ class GridWorldEnv(gym.Env):
         fig  = plt.figure(figsize=(15, 10))
         agent_pos_grid = np.zeros((self.batch_size, self.dimension_size, self.dimension_size, self.dimension_size), dtype=int)
         
-        for i in range(self.batch_size):
+        for i in range(5):
             agent_pos_grid[i, self.agent_pos[i][0], self.agent_pos[i][1], self.agent_pos[i][2]] = 1
 
             col_cube = self.building_zone[i] == GridWorldEnv.COL_BLOCK
@@ -480,7 +480,7 @@ class GridWorldEnv(gym.Env):
             colors[beam_cube] = '#FF5733C0'
             colors[scaffold_cube] = '#f3f6f4C0'
             
-            ax = fig.add_subplot(1, self.batch_size, i + 1, projection='3d')
+            ax = fig.add_subplot(1, 5, i + 1, projection='3d')
             ax.voxels(building_zone_render, facecolors=colors, edgecolor='k')
             ax.set_title(f"Agent {i+1}")
         return fig
