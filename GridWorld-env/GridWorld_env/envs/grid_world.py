@@ -1,4 +1,3 @@
-# scafold gridworld with column and beam
 import gymnasium as gym
 import random
 from gymnasium import spaces
@@ -6,10 +5,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 MAX_TIMESTEP = 3000
 from target_loader import TargetLoader
-
-#import Lock
-from threading import Lock
-# import enum
 
 
 class Action:
@@ -25,47 +20,7 @@ class Action:
     PLACE_COLUMN = 9
 
 
-
-action_enum = Action
-"""
-class Reward:
-    def __init__(self):
-        self.MIN_REWARD = -5
-        self.MAX_REWARD = 10
-    def normalize_reward(self,  rew):
-        # normalize_reward between -1 and 1
-        return 2 * (rew - self.MIN_REWARD) / (self.MAX_REWARD - self.MIN_REWARD) - 1
-"""
 class GridWorldEnv(gym.Env): 
-    """
-        3 TUPLE element state
-        1. agent position
-        3. building zone
-        4. target zone
-
-        block description:
-        0: empty
-        -1: block
-        -2: scaffold
-        1: agents/ or should ??? if agent is a ghost and can move thru?
-
-        ACTION:
-        0: forward, 1: backward, 2: left, 3: right                         [move]
-        4: up, 5: down                                                     [move but only in the scaffolding domain]
-        6: place scaffold at current position                              [place block]
-        7: remove scaffold at current position                             [remove block]
-        8-11: place block at the 4 adjacent position of the agent          [place block]
-
-
-        current Rule:
-        1. agent can move in 4 direction (N, S, E, W), and 2 direction in the z axis (up, down) if agent in scaffolding domain
-        2. agent cannot move through block
-        4. agent can climb down a block if agent is 1 block above the ground, otherwise agent will die(TODO) OR a very big negative reward and let it continue training to be more efficient
-        5. agent can place scafold block directly where it is standing.
-        6. agent cannot remove scafold block if there is a scafolding block above it or another agent above the scafold block
-        7. agent can climb up and down an adjacent block(TODO) NOTE: Do we even need this?
-
-    """
     neighbors = [[-1, 0, 0], [1, 0, 0], [0, -1, 0], [0, 1, 0], [0, 0, -1], [0, 0, 1]]
     SCAFFOLD = -1
     EMPTY = 0
@@ -410,7 +365,7 @@ class GridWorldEnv(gym.Env):
                 truncated = True
                 return reward_signal, self.done_array[env_id], truncated, {}
             else:
-                if self.finished_structure and is_valid and not np.any(np.isin(self.building_zone[env_id], GridWorldEnv.SCAFFOLD)):
+                if is_valid and self._is_building_done_no_scaffold(env_id) and not self.done_array[env_id]:
                     reward_signal = 1
                     self.done_array[env_id] = True
                 return reward_signal, self.done_array[env_id], truncated, {}
@@ -483,10 +438,7 @@ class GridWorldEnv(gym.Env):
                     #terminated = True
                     reward_signal = 1
                     self.finished_structure_with_scafold[env_id] = True
-                elif (is_valid and self._is_building_done_no_scaffold(env_id)):  #  only do terminal check if we placed a block to save computation
-                    #terminated = True
-                    reward_signal = 1
-                    self.finished_structure = True
+                
                 
                 if self.timestep_elapsed > MAX_TIMESTEP:
                     truncated = True
@@ -833,8 +785,25 @@ if __name__ == "__main__":
     env.step((5, 5))
     env.step((5, 5))
     _, reward, done, terminated, _ = env.step((8, 8))
-    env.step((0, 0))
+    
     print(reward)
+    [env.step((1, 1)) for _ in range(2)]
+    [env.step((4, 4)) for _ in range(6)]
+    
+    for k in range(6):
+        for j in range(6):
+            for i in range(6):
+                env.step((7, 7))
+                env.step((0, 0))
+                print("done", env.done_array)
+                
+            [env.step((1, 1)) for _ in range(6)]
+            env.step((5, 5))
+        [env.step((4, 4)) for _ in range(6)]
+        env.step((3, 3))
+    
+
+    
     env.render()
     
     
