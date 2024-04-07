@@ -626,7 +626,7 @@ def main():
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-    n_actions = 8
+    n_actions = 10
     env = gym.make("GridWorld_env/GridWorld", dimension_size=6, path="targets", batch_size=NUM_PROCESSES)
     env.reset()
 
