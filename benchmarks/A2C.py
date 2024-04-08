@@ -139,7 +139,7 @@ class PPO():
                     value_loss = 0.5 * (return_batch - values).pow(2).mean()
 
                 self.optimizer.zero_grad()
-                (value_loss * self.value_loss_coef + action_loss -
+                (value_loss * self.value_loss_coef + POLICY_COEFF * action_loss -
                  dist_entropy * entropy_coefficent).backward()
                 nn.utils.clip_grad_norm_(self.actor_critic.parameters(),
                                          self.max_grad_norm)
@@ -369,11 +369,12 @@ NUM_STEP = 850  # Cap the number of steps to run for each env
 NUM_PROCESSES = 32  # Number of processes to use
 ENV_DIM = 4  # Dimension of one size of the building zone in the env
 NUM_ACTION = 8  # Number of actions in the action space
-NUM_EPISODE = 5000
+NUM_EPISODE = 2500
 NUM_STEP_TOTAL = NUM_STEP * NUM_EPISODE * NUM_PROCESSES
-GAMMA = 0.95  # Discount factor
-VALUE_COEFF = 0.08  # Value loss coefficient
-ENTROPY_COEFF = 0.02  # Entropy regularisation coefficient
+GAMMA = 0.98  # Discount factor
+VALUE_COEFF = 0.2  # Value loss coefficient
+POLICY_COEFF = 0.5
+ENTROPY_COEFF = 0.3  # Entropy regularisation coefficient
 LR = 0.00005
 RMS_EPSILON = 1e-08
 RMS_ALPHA = 0.99
@@ -765,7 +766,7 @@ def main():
                 #getattr(utils.get_vec_normalize(env), 'obs_rms', None)],
             "A2C_checkpoint_" + str(j) + ".pt")
         
-        if j % 10 == 0 and len(episode_rewards) > 1:
+        if j % 5 == 0 and len(episode_rewards) > 1:
             total_num_steps = (j + 1) * NUM_PROCESSES * NUM_STEP
             end = time.time()
             print(
@@ -776,7 +777,8 @@ def main():
                         np.median(episode_rewards), np.min(episode_rewards),
                         np.max(episode_rewards)))
             print("value_loss", value_loss, "action_loss", action_loss, "dist_entropy", dist_entropy)
-            #env.render()
+            plot = env.send_plot_to_tensorboard()
+            agent.writer.add_figure('plot', plot, j)
     
 
 if __name__ == "__main__":
