@@ -5,7 +5,7 @@ import math
 class NoisyLinear(nn.Module):
     """Factorised Gaussian NoisyNet"""
 
-    def __init__(self, in_features, out_features, sigma0=0.5):
+    def __init__(self, in_features, out_features, sigma0=1.0):
         super().__init__()
         self.in_features = in_features
         self.out_features = out_features
