@@ -304,7 +304,7 @@ class GridWorldEnv(gym.Env):
                        self.action_enum.LEFT,
                        self.action_enum.UP,
                        self.action_enum.DOWN]):  # move action
-            reward_signal = -0.25
+            reward_signal = -0.28
             terminated = False
             truncated = False
             is_valid = False
@@ -370,7 +370,7 @@ class GridWorldEnv(gym.Env):
                     self.done_array[env_id] = True
                 return reward_signal, self.done_array[env_id], truncated, {}
         elif action == self.action_enum.PLACE_COLUMN:  # place command
-            reward_signal = -0.5
+            reward_signal = -0.35
             truncated = False
             is_valid = False
             
@@ -391,7 +391,7 @@ class GridWorldEnv(gym.Env):
                 if  self.target[env_id, current_pos[0], current_pos[1], current_pos[2]] == self.building_zone[env_id, current_pos[0], current_pos[1], current_pos[2]]:
                     reward_signal = 0.9  # placing scafold column costs (-0.2 + -0.2) = -0.4. Placing column stack costs -1.2. (6*-0.2) = -1.2. so 0.9 + -1.2 > -0.4
                 else:
-                    reward_signal = -0.5
+                    reward_signal = -0.35
             else:
                 reward_signal = -1
             
@@ -406,7 +406,7 @@ class GridWorldEnv(gym.Env):
             else:
                 return reward_signal, self.done_array[env_id], truncated, {}
         elif action == self.action_enum.PLACE_BEAM:
-            reward_signal = -0.5
+            reward_signal = -0.35
             terminated = False
             truncated = False
             is_valid = False
@@ -430,7 +430,7 @@ class GridWorldEnv(gym.Env):
                     if  self.target[env_id, current_pos[0], current_pos[1], current_pos[2]] == self.building_zone[env_id, current_pos[0], current_pos[1], current_pos[2]]:
                         reward_signal = 0.9
                     else:
-                        reward_signal = -0.5
+                        reward_signal = -0.35
                 else:
                     reward_signal = -1
 

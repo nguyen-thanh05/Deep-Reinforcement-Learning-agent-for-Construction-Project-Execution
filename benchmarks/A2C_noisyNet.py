@@ -95,6 +95,7 @@ class PPO():
 
     def update(self, rollouts, j, entropy_coefficent):
         advantages = rollouts.returns[:-1] - rollouts.value_preds[:-1]
+        #print(advantages.shape, advantages.mean().shape, advantages.mean())
         advantages = (advantages - advantages.mean()) / (
             advantages.std() + 1e-5)
 
@@ -139,7 +140,7 @@ class PPO():
                     value_loss = 0.5 * (return_batch - values).pow(2).mean()
 
                 self.optimizer.zero_grad()
-                (value_loss * self.value_loss_coef + action_loss -
+                (value_loss * self.value_loss_coef + action_loss * POLICY_COEFF -
                  dist_entropy * entropy_coefficent).backward()
                 nn.utils.clip_grad_norm_(self.actor_critic.parameters(),
                                          self.max_grad_norm)
@@ -371,10 +372,11 @@ ENV_DIM = 6  # Dimension of one size of the building zone in the env
 NUM_ACTION = 10  # Number of actions in the action space
 NUM_EPISODE = 2500
 NUM_STEP_TOTAL = NUM_STEP * NUM_EPISODE * NUM_PROCESSES
-GAMMA = 0.995  # Discount factor
-VALUE_COEFF = 0.5  # Value loss coefficient
-ENTROPY_COEFF = 0.3  # Entropy regularisation coefficient
+GAMMA = 0.985  # Discount factor
+VALUE_COEFF = 0.15  # Value loss coefficient
+ENTROPY_COEFF = 0.655  # Entropy regularisation coefficient
 LR = 0.000005
+POLICY_COEFF = 0.3
 RMS_EPSILON = 1e-08
 RMS_ALPHA = 0.99
 ENTROPY_COEFF_START = 1
@@ -382,9 +384,6 @@ ENTROPY_COEFF_END = 0.01
 
 RECURRENT_HIDDEN_SIZE = 1024  # Size of the hidden state in the actor-critic model
 USE_LR_DECAY = False
-
-replay_buffer = ReplayBuffer((4, ENV_DIM, ENV_DIM, ENV_DIM), 8192, 128, 1, GAMMA)
-Transition = namedtuple("Transition", ("state", "action", "next_state", "reward"))
 
 
 def init(module, weight_init, bias_init, gain=1):
@@ -587,15 +586,15 @@ class CNNBase(NNBase):
         
         x = self.conv1(original_input)
         x = torch.cat((x, original_input), dim=1)
-        x = nn.LeakyReLU()(x)
+        x = nn.ReLU()(x)
         
         x = self.conv2(x)
         x = torch.cat((x, original_input), dim=1)
-        x = nn.LeakyReLU()(x)
+        x = nn.ReLU()(x)
         
         x = nn.Flatten()(x)
         x = self.fc1(x)
-        x_skip = nn.LeakyReLU()(x)
+        x_skip = nn.ReLU()(x)
         
         
         if self.is_recurrent:
@@ -755,7 +754,7 @@ def main():
         rollouts.after_update()
 
         # save for every interval-th episode or for the last epoch
-        if (j % 200 == 0
+        if (j % 100 == 0
                 or j == num_updates - 1):
 
             torch.save(#[
@@ -763,7 +762,7 @@ def main():
                 #getattr(utils.get_vec_normalize(env), 'obs_rms', None)],
             "A2C_checkpoint_" + str(j) + ".pt")
         
-        if j % 10 == 0 and len(episode_rewards) > 1:
+        if j % 5 == 0 and len(episode_rewards) > 1:
             total_num_steps = (j + 1) * NUM_PROCESSES * NUM_STEP
             end = time.time()
             print(
