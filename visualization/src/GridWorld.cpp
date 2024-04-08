@@ -271,6 +271,7 @@ Action GridWorld::Step() {
 }
 
 void GridWorld::SaveSequence() const {
+    if (sequence.empty()) return;
     std::ofstream outStream(filePath + ".seq", std::fstream::out);
     outStream << "This sequence file should be accompanied by a corresponding target file of name " << filePath << std::endl;
     outStream << "Dimensions: " << w << ' ' << h << ' ' << d << std::endl;

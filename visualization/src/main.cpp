@@ -3,7 +3,7 @@
 #include "rlgl.h"
 #include "GridWorld.h"
 
-void PrintError(){
+void PrintError() {
     std::cerr << "Usage: ./GridWorldEnv <env_size> <num_block_types> <s|l> <file_name>\n\n"
               << "<env_size>       : size of the environment\n"
               << "<num_block_types>: number of block types\n"
@@ -33,8 +33,8 @@ int main(int argc, char* argv[])
     if (operation != "s" && operation != "l") PrintError();
     bool save = operation == "s";
 
-    const int screenWidth = 1000;
-    const int screenHeight = 600;
+    const int screenWidth = 1200;
+    const int screenHeight = 800;
 
     GWEnv::GridWorld env(size, size, size, blockTypes, argv[4], save);
     InitWindow(screenWidth, screenHeight, "Grid World");
