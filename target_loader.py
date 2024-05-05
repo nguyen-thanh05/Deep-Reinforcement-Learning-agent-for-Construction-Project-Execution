@@ -22,7 +22,7 @@ class TargetLoader:
 
     @staticmethod
     def load_file(file_name: str) -> np.ndarray:
-        array = np.fromfile(file_name, dtype=int)
+        array = np.fromfile(file_name, dtype=int, sep=' ')
         array = array[3:].reshape(array[0], array[1], array[2])
         return array.transpose(0, 2, 1)
 
@@ -43,7 +43,7 @@ class TargetLoader:
         cubes = self.targets[idx]
         colors = np.empty(cubes.shape, dtype=object)
         colors[cubes == 1] = '#7A88CCC0'
-
+        colors[cubes==2] = '#FF5733C0'
         fig = plt.figure()
         ax = fig.add_subplot(projection='3d')
         ax.voxels(cubes, facecolors=colors, edgecolor='k')
@@ -51,5 +51,5 @@ class TargetLoader:
 
 
 if __name__ == "__main__":
-    loader = TargetLoader("visualization/models")
-    loader.visualize(-1)
+    loader = TargetLoader("targets")
+    loader.visualize(1)

@@ -9,8 +9,7 @@ void GridWorld::Render() {
     if (IsCursorHidden()) UpdateCamera(&camera, CAMERA_FREE);
 
     // Toggle camera controls
-    if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT))
-    {
+    if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT)) {
         if (IsCursorHidden()) EnableCursor();
         else DisableCursor();
     }
@@ -27,6 +26,8 @@ void GridWorld::Render() {
             Move(action);
             break;
     }
+
+    if (recording && action != Action::NONE) sequence.push_back(action);
 
     BeginDrawing();
     ClearBackground(RAYWHITE);
@@ -47,12 +48,18 @@ void GridWorld::Render() {
     DrawText("X: Delete block", 40, 80, 10, DARKGRAY);
     DrawText("SPACE: Place block", 40, 100, 10, DARKGRAY);
     DrawText("ENTER: Save to file", 40, 120, 10, DARKGRAY);
+    if (recording) {
+        DrawText("R: Stop recording", 40, 140, 10, DARKGRAY);
+        DrawRectangle(140, 140, 10, 10, RED);
+    } else {
+        DrawText("R: Start recording", 40, 140, 10, DARKGRAY);
+        DrawTriangle({150, 145}, {140, 140}, {140, 150}, RED);
+    }
 
     DrawRectangle( 900, 10, 70, 70, Fade(blockColors[currBlockType], 0.5f));
     DrawRectangleLines( 900, 10, 70, 70, blockColors[currBlockType]);
     DrawText("Block type", 910, 20, 10, DARKGRAY);
     DrawText(std::to_string(currBlockType).c_str(), 930, 35, 20, DARKGRAY);
-
     EndDrawing();
 }
 
@@ -60,7 +67,6 @@ void GridWorld::DrawPlanes() const {
     float hLength = (float) h * spacing;
     float wLength = (float) w * spacing;
     float dLength = (float) d * spacing;
-
 
     rlBegin(RL_LINES);
     for (int i = 0; i <= h; i++) {
@@ -159,8 +165,8 @@ void GridWorld::DrawBlocks() const {
                     DrawCube({posX, posY, posZ},
                              spacing, spacing, spacing,
                              Fade(blockColors[grid[i][j][k]], 0.5f));
-                    DrawCubeWires({posX, posY, posZ},
-                                  spacing, spacing, spacing, RED);
+//                    DrawCubeWires({posX, posY, posZ},
+//                                  spacing, spacing, spacing, RED);
                 }
             }
         }
@@ -182,44 +188,39 @@ void GridWorld::ResizeGrid(uint32_t _w, uint32_t _h, uint32_t _d) {
     agentPos = {0, 0, 0};
 }
 
-/* Trying out binary format. Sorry Thanh
-void GridWorld::SaveToFile() const {
-    std::ofstream myfile;
-    myfile.open(filePath, std::fstream::out);
+void GridWorld::SaveTarget() const {
+    std::ofstream targetOutStream;
+    targetOutStream.open(filePath, std::fstream::out);
 
-    for (int i=0; i < w; i++) {
-        for (int j=0; j < d; j++) {
-            for (int k=0; k < h; k++) {
-                myfile << grid[i][j][k] << " ";
-            }
-            myfile << std::endl;
-        }
-        myfile << std::endl;
-    }
-    myfile << std::endl;
-    myfile.close();
-}
-*/
-
-void GridWorld::SaveToFile() const {
-    size_t size = w * d * h + 3;
-    std::unique_ptr<int []> flatArray = std::make_unique<int[]>(size);
-    flatArray[0] = w;
-    flatArray[1] = h;
-    flatArray[2] = d;
-
-    size_t index = 3;
+    targetOutStream << w << ' ' << h << ' ' << d << ' ';
 
     for (int i=0; i < w; i++) {
         for (int j=0; j < h; j++) {
             for (int k=0; k < d; k++) {
-                flatArray[index++] = grid[i][j][k];
+                targetOutStream << grid[i][j][k] << " ";
+            }
+        }
+        targetOutStream << std::endl;
+    }
+    targetOutStream << std::endl;
+    targetOutStream.close();
+}
+
+void GridWorld::LoadFromFile() {
+    std::ifstream file;
+    int x, y, z;
+
+    file.open(filePath, std::fstream::in);
+    file >> x >> y >> z;
+    if (x != w || y != h || z != d) ResizeGrid(x, y, z);
+
+    for (int i=0; i < w; i++) {
+        for (int j=0; j < h; j++) {
+            for (int k=0; k < d; k++) {
+                file >> grid[i][j][k];
             }
         }
     }
-
-    std::ofstream file(filePath, std::ios_base::binary);
-    file.write((char *)flatArray.get(), static_cast<std::streamsize>(size * sizeof(int)));
     file.close();
 }
 
@@ -234,12 +235,17 @@ Action GridWorld::Step() {
             return Action::NONE;
         }
     }
+    if (IsKeyPressed(KEY_R)) {
+        recording = !recording;
+        Record();
+        return Action::NONE;
+    }
 
     if (IsKeyPressed(KEY_ENTER)) {
         if (enterDelayed) return Action::NONE;
         enterDelayed = true;
-
-        SaveToFile();
+        SaveSequence();
+        SaveTarget();
         return Action::NONE;
     }
 
@@ -264,33 +270,18 @@ Action GridWorld::Step() {
     return Action::NONE;
 }
 
-void GridWorld::LoadFromFile() {
-    if (!fs::exists(filePath)) {
-        std::cerr << "File " << filePath << " does not exist" << std::endl;
-        exit(1);
+void GridWorld::SaveSequence() const {
+    if (sequence.empty()) return;
+    std::ofstream outStream(filePath + ".seq", std::fstream::out);
+    outStream << "This sequence file should be accompanied by a corresponding target file of name " << filePath << std::endl;
+    outStream << "Dimensions: " << w << ' ' << h << ' ' << d << std::endl;
+    outStream << "Starting position: x " << startingPos.x << ' ' << startingPos.y << ' ' << startingPos.z << std::endl;
+    outStream << "Number of actions: " << sequence.size() << std::endl << std::endl;
+
+    for (auto action : sequence) {
+        outStream << ActionName[action] << std::endl;
     }
-
-    std::ifstream file(filePath, std::ios_base::binary);
-    int x, y, z;
-    file.read((char *) &x, sizeof(int));
-    file.read((char *) &y, sizeof(int));
-    file.read((char *) &z, sizeof(int));
-    if (x != w || y != h || z != d) ResizeGrid(x, y, z);
-
-    // Could read directly into grid instead of array. Not sure which way is more efficient
-    std::unique_ptr<int []> flatArray = std::make_unique<int[]>(x * y * z);
-    file.read((char *) flatArray.get(), static_cast<std::streamsize>(x * y * z * sizeof(int)));
-    size_t index = 0;
-
-    for (int i=0; i < w; i++) {
-        for (int j=0; j < h; j++) {
-            for (int k=0; k < d; k++) {
-                grid[i][j][k] = flatArray[index++];
-            }
-        }
-    }
-    file.close();
+    outStream.close();
 }
-
 }
 

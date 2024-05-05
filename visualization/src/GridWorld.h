@@ -4,6 +4,7 @@
 #include "IAgentStep.h"
 #include "raylib.h"
 #include "rlgl.h"
+#include <istream>
 #include <utility>
 #include <vector>
 #include <string>
@@ -13,23 +14,25 @@ namespace fs = std::filesystem;
 
 namespace GWEnv {
 namespace {
-    enum class Action {
-        UP, DOWN, LEFT, RIGHT, FORWARD, BACKWARD, PLACE, REMOVE, NONE
+    template<class T> using vec = std::vector<T>;
+
+    enum Action { UP, DOWN, LEFT, RIGHT, FORWARD, BACKWARD, PLACE, REMOVE, NONE };
+
+    const char* ActionName[] = {
+        "Up", "Down", "Left", "Right",
+        "Forward","Backward", "Place", "Remove"
+    };
+
+    struct Coordinates {
+        int x, y, z;
     };
 }
 
-// TODO: We're only using this struct once. Could use a tuple or something else instead
-struct Coordinates {
-    int x, y, z;
-};
-
 class GridWorld {
-template<class T> using vec = std::vector<T>;
-
 public:
-    GridWorld(int _w, int _h, int _d, int _blockTypes, std::string path, bool save)
+    GridWorld(int _w, int _h, int _d, int _blockTypes, const char* path, bool save)
             : w(_w), h(_h), d(_d), nBlockTypes(_blockTypes),
-              filePath(std::move(path)),
+              filePath(path),
               grid(w, vec<vec<int>>(h, vec<int>(d, 0)))
     {
         if (!save) {
@@ -56,18 +59,22 @@ private:
     // Draw the xy, xz, yz planes using grids
     void DrawPlanes() const;
 
-    // Add a block at coordinate (x, y, z) with blockType
-    // NOTE: could use *agentPos* directly. See Coordinates struct comment
-    // Could also change signature to void bc we're not doing anything with the result rn
     bool AddBlock(int x, int y, int z, int blockType);
 
     void RemoveBlock(int x, int y, int z);
 
     void Move(Action direction);
 
-    void SaveToFile() const;
+    void SaveTarget() const;
 
     void LoadFromFile();
+
+    inline void Record() {
+        startingPos = agentPos;
+        sequence.clear();
+    }
+
+    void SaveSequence() const;
 
     Action Step();
 
@@ -80,6 +87,7 @@ private:
     // and not have our world be resizable throughout its lifetime.
     void ResizeGrid(uint32_t _w, uint32_t _h, uint32_t _d);
 
+    //----------------------- Member Variables --------------------------------//
     Coordinates agentPos = {0, 0, 0};
     Camera camera = {0};
 
@@ -90,7 +98,7 @@ private:
     int nBlockTypes;
 
     constexpr static Color blockColors[13] = {
-            BLACK,
+        BLACK,
         BLUE,
         YELLOW,
         ORANGE,
@@ -109,6 +117,9 @@ private:
     vec<vec<vec<int>>> grid;
     float spacing = 1.0f;
     std::string filePath;
+    bool recording = false;
+    Coordinates startingPos{};
+    vec<Action> sequence;
 };
 
 }
